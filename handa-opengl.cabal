@@ -28,6 +28,7 @@ library
                     Graphics.Rendering.Handa.Util
                     Graphics.UI.Handa.Keyboard
                     Graphics.UI.Handa.Setup
+                    Graphics.UI.Handa.Util
   hs-source-dirs:   src
   exposed:          True
   buildable:        True
