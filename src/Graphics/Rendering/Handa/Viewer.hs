@@ -11,15 +11,16 @@ module Graphics.Rendering.Handa.Viewer (
 , fieldOfView
 , reshape
 , loadViewer
+, dlpViewerDisplay
 ) where
 
 
 import Data.Default (Default, def)
-import Data.IORef (IORef)
-import Graphics.Rendering.DLP (DlpEye(..), DlpState, showEye')
+import Graphics.Rendering.DLP (DlpEncoding, DlpEye(..))
+import Graphics.Rendering.DLP.Callbacks (DlpDisplay(..))
 import Graphics.Rendering.Handa.Util (degree)
 import Graphics.Rendering.OpenGL (GLdouble, MatrixMode(..), Position(..), Size(..), Vector3(..), Vertex3(..), ($=!), loadIdentity, lookAt, matrixMode, perspective, viewport)
-import Graphics.UI.GLUT (ReshapeCallback)
+import Graphics.UI.GLUT (DisplayCallback, ReshapeCallback)
 
 
 data ViewerParameters =
@@ -95,20 +96,27 @@ reshape vp@ViewerParameters{..} wh@(Size w h) =
     matrixMode $=! Modelview 0
 
 
-loadViewer :: Maybe (IORef DlpState) -> ViewerParameters -> IO ()
-loadViewer dlp ViewerParameters{..} =
+loadViewer :: ViewerParameters -> DlpEye -> IO ()
+loadViewer ViewerParameters{..} eye =
   do
     loadIdentity
-    offset <-
-      case dlp of
-        Nothing   -> return 0
-        Just dlp' -> do
-                       isLeft <- showEye' LeftDlp dlp'
-                       return $ if isLeft then -1/2 else 1/2
     let
+      offset =
+        case eye of
+          LeftDlp  -> -1/2
+          RightDlp ->  1/2
       Vertex3  xEye  yEye  zEye = eyePosition
       Vector3 dxEye dyEye dzEye = eyeSeparation
     lookAt
       (Vertex3 (xEye + offset * dxEye) (yEye + offset * dyEye) (zEye + offset * dzEye))
       sceneCenter
       eyeUpward
+
+
+dlpViewerDisplay :: DlpEncoding -> ViewerParameters -> DisplayCallback -> DlpDisplay
+dlpViewerDisplay encoding viewerParameters display =
+  def 
+    {
+      dlpEncoding = encoding
+    , doDisplay = \eye -> loadViewer viewerParameters eye >> display
+    }

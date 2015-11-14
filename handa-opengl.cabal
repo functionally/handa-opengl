@@ -2,7 +2,7 @@
 -- documentation, see http://haskell.org/cabal/users-guide/
 
 name:                handa-opengl
-version:             0.1.5.0
+version:             0.1.6.0
 -- synopsis:            
 -- description:         
 license:             MIT
@@ -28,7 +28,6 @@ library
                     Graphics.Rendering.Handa.Util
                     Graphics.UI.Handa.Keyboard
                     Graphics.UI.Handa.Setup
-                    Graphics.UI.Handa.Util
   hs-source-dirs:   src
   exposed:          True
   buildable:        True

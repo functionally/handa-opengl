@@ -5,18 +5,16 @@ module Graphics.UI.Handa.Setup (
 ) where
 
 
-import Control.Applicative ((<$>))
 import Control.Monad (when)
 import Data.Default (def)
 import Data.List ((\\))
-import Data.IORef (IORef)
-import Graphics.Rendering.DLP (DlpEncoding(FrameSequential), DlpState, initDlp)
-import Graphics.Rendering.Handa.Viewer (ViewerParameters(eyeSeparation), desktopViewer, laptopViewer, projectorViewer, reshape)
+import Graphics.Rendering.DLP (DlpEncoding(..))
+import Graphics.Rendering.Handa.Viewer (ViewerParameters(eyeSeparation), desktopViewer, laptopViewer, phoneViewer, projectorViewer, reshape)
 import Graphics.Rendering.OpenGL (BlendingFactor(..), Capability(Enabled), ComparisonFunction(Less), Vector3(..), ($=), blend, blendFunc)
 import Graphics.UI.GLUT (DisplayMode(..), IdleCallback, createWindow, depthFunc, getArgsAndInitialize, fullScreen, idleCallback, initialDisplayMode, postRedisplay, reshapeCallback)
 
 
-setup :: String -> IO (Maybe (IORef DlpState), ViewerParameters, [String])
+setup :: String -> IO (DlpEncoding, ViewerParameters, [String])
 setup title =
   do
     (_, arguments) <- getArgsAndInitialize
@@ -31,16 +29,17 @@ setup title =
     return r
 
 
-handleArguments :: [String] -> IO (Maybe (IORef DlpState), ViewerParameters, [String])
+handleArguments :: [String] -> IO (DlpEncoding, ViewerParameters, [String])
 handleArguments arguments =
   do
     when ("--fullscreen" `elem` arguments) fullScreen
-    dlp <-
-      if "--stereo" `elem` arguments
-        then Just <$> initDlp FrameSequential
-        else return Nothing
     let
+      dlp
+        | "--stereo"    `elem` arguments = FrameSequential
+        | "--cardboard" `elem` arguments = SideBySide
+        | otherwise                     = LeftOnly
       viewerParameters
+        | "--phone"     `elem` arguments = phoneViewer
         | "--laptop"    `elem` arguments = laptopViewer
         | "--desktop"   `elem` arguments = desktopViewer
         | "--projector" `elem` arguments = projectorViewer
@@ -49,7 +48,7 @@ handleArguments arguments =
         if "--switchEyes" `elem` arguments
         then viewerParameters {eyeSeparation = (\(Vector3 x y z) -> Vector3 (-x) (-y) (-z)) $ eyeSeparation viewerParameters}
         else viewerParameters
-      keywords = ["--fullscreen", "--stereo", "--laptop", "--desktop", "--projector", "--switchEyes"]
+      keywords = ["--fullscreen", "--stereo", "--cardboard", "--phone", "--laptop", "--desktop", "--projector", "--switchEyes"]
     return (dlp, viewerParameters', arguments \\ keywords)
 
 
