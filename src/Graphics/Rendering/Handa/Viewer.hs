@@ -4,6 +4,7 @@
 module Graphics.Rendering.Handa.Viewer (
   ViewerParameters(..)
 , viewerGeometry
+, phoneViewer
 , laptopViewer
 , desktopViewer
 , projectorViewer
@@ -57,6 +58,10 @@ viewerGeometry width height throw =
     displayAspectRatio = width / height
   , displayThrowRatio  = throw / width
   }
+
+
+phoneViewer :: ViewerParameters
+phoneViewer = viewerGeometry 5.27 2.80 12
 
 
 laptopViewer :: ViewerParameters

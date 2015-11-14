@@ -16,7 +16,6 @@ import Foreign.Storable (Storable, sizeOf)
 import Graphics.Rendering.OpenGL (DataType, BufferObject, BufferTarget(ArrayBuffer), BufferUsage(StaticDraw), Capability(..), ClientArrayType(VertexArray), NumArrayIndices, NumComponents, PrimitiveMode, Stride, VertexArrayDescriptor(..), ($=), arrayPointer, bindBuffer, bufferData, drawArrays, clientState, genObjectNames)
 
 
-
 data Shape =
   Shape
   {
