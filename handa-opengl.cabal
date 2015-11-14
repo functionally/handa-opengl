@@ -26,7 +26,6 @@ library
                     Graphics.Rendering.Handa.Shape
                     Graphics.Rendering.Handa.Viewer
                     Graphics.Rendering.Handa.Util
-                    Graphics.UI.Handa.Face
                     Graphics.UI.Handa.Keyboard
                     Graphics.UI.Handa.Setup
   hs-source-dirs:   src
