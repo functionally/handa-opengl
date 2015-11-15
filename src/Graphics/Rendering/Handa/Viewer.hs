@@ -1,14 +1,29 @@
+{-|
+Module      :  Graphics.Rendering.Handa.Viewer
+Copyright   :  (c) 2015 Brian W Bush
+License     :  MIT
+Maintainer  :  Brian W Bush <consult@brianwbush.info>
+Stability   :  Stable
+Portability :  Portable
+
+Functions for managing perspectives and frusta.
+-}
+
+
 {-# LANGUAGE RecordWildCards #-}
 
 
 module Graphics.Rendering.Handa.Viewer (
+  -- * Viewer Geometry
   ViewerParameters(..)
 , viewerGeometry
+, fieldOfView
+  -- * Typical Devices
 , phoneViewer
 , laptopViewer
 , desktopViewer
 , projectorViewer
-, fieldOfView
+  -- * Callbacks and Rendering
 , reshape
 , loadViewer
 , dlpViewerDisplay
@@ -23,17 +38,18 @@ import Graphics.Rendering.OpenGL (GLdouble, MatrixMode(..), Position(..), Size(.
 import Graphics.UI.GLUT (DisplayCallback, ReshapeCallback)
 
 
+-- | Paramaters specifying a viewer, including the frustum of the view.
 data ViewerParameters =
   ViewerParameters
   {
-    displayAspectRatio :: GLdouble -- width over height
-  , displayThrowRatio  :: GLdouble -- width over distance
-  , distanceNearPlane  :: GLdouble
-  , distanceFarPlane   :: GLdouble
-  , eyePosition        :: Vertex3 GLdouble
-  , eyeSeparation      :: Vector3 GLdouble
-  , eyeUpward          :: Vector3 GLdouble
-  , sceneCenter        :: Vertex3 GLdouble
+    displayAspectRatio :: GLdouble         -- ^ The aspect ratio of the screen or display (i.e., the width divided by the height).
+  , displayThrowRatio  :: GLdouble         -- ^ The throw ratio of the screen or display (i.e., the width divided by the distance).
+  , distanceNearPlane  :: GLdouble         -- ^ The distance to the near plane of the frustum.
+  , distanceFarPlane   :: GLdouble         -- ^ The distance to the far plane of the frustum.
+  , eyePosition        :: Vertex3 GLdouble -- ^ The position of the eyes.
+  , eyeSeparation      :: Vector3 GLdouble -- ^ The separation between the eyes.
+  , eyeUpward          :: Vector3 GLdouble -- ^ The upward direction.
+  , sceneCenter        :: Vertex3 GLdouble -- ^ The center of the scene.
   }
     deriving (Eq, Read, Show)
 
@@ -52,7 +68,11 @@ instance Default ViewerParameters where
     }
 
 
-viewerGeometry :: GLdouble -> GLdouble -> GLdouble -> ViewerParameters
+-- | Construct viewer geometry from physical geometry.
+viewerGeometry :: GLdouble         -- ^ The width of the screen or display.
+               -> GLdouble         -- ^ The height of the screen or display.
+               -> GLdouble         -- ^ The distance from the eyes to the screen or display.
+               -> ViewerParameters -- ^ The corresponding viewer parameters.
 viewerGeometry width height throw =
   def
   {
@@ -61,18 +81,22 @@ viewerGeometry width height throw =
   }
 
 
+-- | Viewer parameters for a typical smartphone screen.
 phoneViewer :: ViewerParameters
 phoneViewer = viewerGeometry 5.27 2.80 12
 
 
+-- | Viewer parameters for a typical laptop screen.
 laptopViewer :: ViewerParameters
 laptopViewer = viewerGeometry 13.625 7.875 24
 
 
+-- | Viewer parameters for a typical desktop monitor.
 desktopViewer :: ViewerParameters
 desktopViewer = viewerGeometry 20.75 11.625 32
 
 
+-- | Viewer parameters for a typical projector.
 projectorViewer :: ViewerParameters
 projectorViewer =
   def
@@ -82,11 +106,15 @@ projectorViewer =
   }
 
 
-fieldOfView :: ViewerParameters -> GLdouble
+-- | Compute the field of view for viewer parameters.
+fieldOfView :: ViewerParameters -- ^ The viewer parameters
+            -> GLdouble         -- ^ The field of view, in degrees.
 fieldOfView ViewerParameters{..} = 2 * atan2 0.5 displayThrowRatio * degree
 
 
-reshape :: ViewerParameters -> ReshapeCallback
+-- | Construct a reshape callback from viewer parameters.  This simply sets the frustum based on the viewer parameters and the size of the viewport.
+reshape :: ViewerParameters -- ^ The viewer parameters.
+        -> ReshapeCallback  -- ^ The reshape callback.
 reshape vp@ViewerParameters{..} wh@(Size w h) = 
   do
     viewport $=! (Position 0 0, wh)
@@ -96,7 +124,10 @@ reshape vp@ViewerParameters{..} wh@(Size w h) =
     matrixMode $=! Modelview 0
 
 
-loadViewer :: ViewerParameters -> DlpEye -> IO ()
+-- | Create an action look at the scene according to the viewer parameters.
+loadViewer :: ViewerParameters -- ^ The viewer parameters.
+           -> DlpEye           -- ^ The eye from which to view.
+           -> IO ()            -- ^ An action for looking at the scene using the specified eye and viewer parameters.
 loadViewer ViewerParameters{..} eye =
   do
     loadIdentity
@@ -113,7 +144,11 @@ loadViewer ViewerParameters{..} eye =
       eyeUpward
 
 
-dlpViewerDisplay :: DlpEncoding -> ViewerParameters -> DisplayCallback -> DlpDisplay
+-- | Construct a DLP display from a display callback.
+dlpViewerDisplay :: DlpEncoding      -- ^ The DLP encoding.
+                 -> ViewerParameters -- ^ The viewer parameters.
+                 -> DisplayCallback  -- ^ The display callback.
+                 -> DlpDisplay       -- ^ The DLP display data for using the specified encoding, viewer parameters, and display callback.
 dlpViewerDisplay encoding viewerParameters display =
   def 
     {

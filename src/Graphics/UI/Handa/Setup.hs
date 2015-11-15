@@ -1,4 +1,17 @@
+{-|
+Module      :  Graphics.UI.Handa.Setup
+Copyright   :  (c) 2015 Brian W Bush
+License     :  MIT
+Maintainer  :  Brian W Bush <consult@brianwbush.info>
+Stability   :  Stable
+Portability :  Portable
+
+Functions for setting up GLUT applications.
+-}
+
+
 module Graphics.UI.Handa.Setup (
+  -- * Functions
   setup
 , handleArguments
 , idle
@@ -14,7 +27,9 @@ import Graphics.Rendering.OpenGL (BlendingFactor(..), Capability(Enabled), Compa
 import Graphics.UI.GLUT (DisplayMode(..), IdleCallback, createWindow, depthFunc, getArgsAndInitialize, fullScreen, idleCallback, initialDisplayMode, postRedisplay, reshapeCallback)
 
 
-setup :: String -> IO (DlpEncoding, ViewerParameters, [String])
+-- | Set up a window with basic callbacks.  This creates a double-buffered window with a depth buffer, a transparency blending function, a generic reshaping callback, and a redisplaying idle function.  See 'handleArguments' for information on how command-line arguments are interpretted.
+setup :: String                                       -- ^ The window title.
+      -> IO (DlpEncoding, ViewerParameters, [String]) -- ^ An action returing the DLP encoding requested, the viewer parameters, and the uninterpretted arguments.
 setup title =
   do
     (_, arguments) <- getArgsAndInitialize
@@ -29,6 +44,23 @@ setup title =
     return r
 
 
+-- | Act on command-line arguments.
+--
+-- *   \"--fullscreen\" puts the application in full screen mode.
+--
+-- *   \"--stereo\" puts the application in frame-sequential DLP stereo mode.
+--
+-- *   \"--cardboard\" puts the application in side-by-side (Google Cardboard) stereo mode.
+--
+-- *   \"--phone\" sets the frustum for a typical smartphone.
+--
+-- *   \"--laptop\" sets the frustum for a typical laptop.
+--
+-- *   \"--desktop\" sets the frustum for a typical desktop monitor.
+--
+-- *   \"--projection1 sets the frustum for a typical projector.
+--
+-- *   \"--switchEyes\" swaps the views of the left and right eyes.
 handleArguments :: [String] -> IO (DlpEncoding, ViewerParameters, [String])
 handleArguments arguments =
   do
@@ -52,5 +84,6 @@ handleArguments arguments =
     return (dlp, viewerParameters', arguments \\ keywords)
 
 
+-- | An idle callback that simply posts a request for redisplay.
 idle :: IdleCallback
 idle = postRedisplay Nothing
