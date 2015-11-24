@@ -33,7 +33,9 @@ setup :: String                                       -- ^ The window title.
 setup title =
   do
     (_, arguments) <- getArgsAndInitialize
-    initialDisplayMode $= [WithDepthBuffer, DoubleBuffered]
+    initialDisplayMode $=
+      (if "--quadbuffer" `elem` arguments then (Stereoscopic :) else id)
+        [WithDepthBuffer, DoubleBuffered]
     _window <- createWindow title
     depthFunc $= Just Less 
     blend $= Enabled
@@ -52,6 +54,8 @@ setup title =
 --
 -- *   \"--cardboard\" puts the application in side-by-side (Google Cardboard) stereo mode.
 --
+-- *   \*--quadbuffer puts the application in quad buffer stereo mode.
+--
 -- *   \"--phone\" sets the frustum for a typical smartphone.
 --
 -- *   \"--laptop\" sets the frustum for a typical laptop.
@@ -67,20 +71,21 @@ handleArguments arguments =
     when ("--fullscreen" `elem` arguments) fullScreen
     let
       dlp
-        | "--stereo"    `elem` arguments = FrameSequential
-        | "--cardboard" `elem` arguments = SideBySide
-        | otherwise                     = LeftOnly
+        | "--stereo"     `elem` arguments = FrameSequential
+        | "--cardboard"  `elem` arguments = SideBySide
+        | "--quadbuffer" `elem` arguments = QuadBuffer
+        | otherwise                       = LeftOnly
       viewerParameters
-        | "--phone"     `elem` arguments = phoneViewer
-        | "--laptop"    `elem` arguments = laptopViewer
-        | "--desktop"   `elem` arguments = desktopViewer
-        | "--projector" `elem` arguments = projectorViewer
-        | otherwise                      = def
+        | "--phone"      `elem` arguments = phoneViewer
+        | "--laptop"     `elem` arguments = laptopViewer
+        | "--desktop"    `elem` arguments = desktopViewer
+        | "--projector"  `elem` arguments = projectorViewer
+        | otherwise                       = def
       viewerParameters' =
         if "--switchEyes" `elem` arguments
         then viewerParameters {eyeSeparation = (\(Vector3 x y z) -> Vector3 (-x) (-y) (-z)) $ eyeSeparation viewerParameters}
         else viewerParameters
-      keywords = ["--fullscreen", "--stereo", "--cardboard", "--phone", "--laptop", "--desktop", "--projector", "--switchEyes"]
+      keywords = ["--fullscreen", "--stereo", "--cardboard", "--quadbuffer", "--phone", "--laptop", "--desktop", "--projector", "--switchEyes"]
     return (dlp, viewerParameters', arguments \\ keywords)
 
 
