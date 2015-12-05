@@ -34,7 +34,7 @@ import Graphics.Rendering.Handa.Viewer (ViewerParameters(eyeSeparation), desktop
 import Graphics.Rendering.OpenGL (BlendingFactor(..), Capability(Enabled), ComparisonFunction(Less), Vector3(..), ($=), blend, blendFunc)
 import Graphics.UI.GLUT (DisplayMode(..), IdleCallback, createWindow, depthFunc, fullScreen, idleCallback, initialDisplayMode, initialize, postRedisplay, reshapeCallback)
 
-import qualified Graphics.Rendering.DLP as DLP (DlpEncoding(..))
+import qualified Graphics.Rendering.DLP as D (DlpEncoding(..))
 
 
 -- | The configuration for setting up the display.
@@ -51,7 +51,7 @@ data Setup =
 
 -- | The type of stereo.  
 data Stereo =
-    Dlp        -- ^ Frame-sequential DLP 3D ReadySync stereo.
+    DLP        -- ^ Frame-sequential DLP 3D ReadySync stereo.
   | QuadBuffer -- ^ Quad buffer stereo.
   | Cardboard  -- ^ Google Cardboard stereo.
   | Mono       -- ^ No stereo.
@@ -84,10 +84,10 @@ setup title program arguments Setup{..} =
     when fullscreen fullScreen
     let
       dlp = case stereo of
-        Dlp        -> DLP.FrameSequential
-        QuadBuffer -> DLP.QuadBuffer
-        Cardboard  -> DLP.SideBySide
-        Mono       -> DLP.LeftOnly
+        DLP        -> D.FrameSequential
+        QuadBuffer -> D.QuadBuffer
+        Cardboard  -> D.SideBySide
+        Mono       -> D.LeftOnly
       viewerParameters = case viewer of
         Phone     -> phoneViewer
         Laptop    -> laptopViewer
@@ -126,7 +126,7 @@ handleArguments :: [String]          -- ^ The arguments.
 handleArguments arguments =
   let
     stereo
-      | "--dlp"        `elem` arguments = Dlp
+      | "--dlp"        `elem` arguments = DLP
       | "--cardboard"  `elem` arguments = Cardboard
       | "--quadbuffer" `elem` arguments = QuadBuffer
       | otherwise                       = Mono
