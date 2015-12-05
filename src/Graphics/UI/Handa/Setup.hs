@@ -86,7 +86,9 @@ setup :: String                                       -- ^ The window title.
 setup title program arguments Setup{..} =
   do
     arguments' <- initialize program arguments
-    initialDisplayMode $= [WithDepthBuffer, DoubleBuffered]
+    initialDisplayMode $=
+      (if stereo == QuadBuffer then (Stereoscopic :) else id)
+        [WithDepthBuffer, DoubleBuffered]
     _window <- createWindow title
     depthFunc $= Just Less 
     blend $= Enabled
