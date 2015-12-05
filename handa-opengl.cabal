@@ -14,7 +14,7 @@ cabal-version:       >= 1.10
 stability:           Stable
 homepage:            https://bitbucket.org/bwbush/handa-opengl
 bug-reports:         https://bwbush.atlassian.net/projects/HOGL/issues/
-package-url:         https://bitbucket.org/bwbush/handa-opengl/downloads/handa-opengl-0.1.6.1.tar.gz
+package-url:         https://bitbucket.org/bwbush/handa-opengl/downloads/handa-opengl-0.1.7.0.tar.gz
 
 extra-source-files:  ReadMe.md
 
