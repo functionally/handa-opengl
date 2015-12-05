@@ -27,6 +27,7 @@ module Graphics.UI.Handa.Setup (
 
 import Control.Monad (when)
 import Data.Data (Data)
+import Data.Default (Default(def))
 import Data.List ((\\))
 import Data.Typeable (Typeable)
 import Graphics.Rendering.DLP (DlpEncoding)
@@ -48,6 +49,9 @@ data Setup =
   }
   deriving (Data, Eq, Read, Show, Typeable)
 
+instance Default Setup where
+  def = Setup def False def True
+
 
 -- | The type of stereo.  
 data Stereo =
@@ -57,6 +61,9 @@ data Stereo =
   | Mono       -- ^ No stereo.
   deriving (Bounded, Data, Enum, Eq, Ord, Read, Show, Typeable)
 
+instance Default Stereo where
+  def = Mono
+
 
 -- | The viewer information.
 data Viewer =
@@ -65,6 +72,9 @@ data Viewer =
   | Desktop   -- ^ A typical desktop display.
   | Projector -- ^ A typical projector.
   deriving (Bounded, Data, Enum, Eq, Ord, Read, Show, Typeable)
+
+instance Default Viewer where
+  def = Laptop
 
 
 -- | Set up a window with basic callbacks.  This creates a double-buffered window with a depth buffer, a transparency blending function, a generic reshaping callback, and a redisplaying idle function.  See 'handleArguments' for information on how command-line arguments are interpretted.
