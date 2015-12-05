@@ -1,5 +1,5 @@
 name:                handa-opengl
-version:             0.1.7.5
+version:             0.1.7.6
 synopsis:            Utility functions for OpenGL and GLUT
 description:         This is a collection of miscellaneous utility functions for OpenGL and GLUT.
 
@@ -23,12 +23,12 @@ source-repository head
   location: https://bwbush@bitbucket.org/bwbush/handa-opengl.git
  
 library
-  build-depends:    base               >= 4.6 && < 5
-               ,    array              >= 0.4.0.1
+  build-depends:    base               >= 4.8.1 && < 5
+               ,    array              >= 0.5.1.0
                ,    data-default       >= 0.5.3
-               ,    GLUT               >= 2.4
-               ,    opengl-dlp-stereo  >= 0.1.4.1
-               ,    OpenGL             >= 2.8
+               ,    GLUT               >= 2.7.0.1
+               ,    opengl-dlp-stereo  >= 0.1.5.1
+               ,    OpenGL             >= 2.12.0.1
   exposed-modules:  Graphics.Rendering.Handa.Face
                     Graphics.Rendering.Handa.Shape
                     Graphics.Rendering.Handa.Viewer

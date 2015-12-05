@@ -23,7 +23,6 @@ module Graphics.Rendering.Handa.Shape (
 ) where
 
 
-import Control.Applicative ((<$>))
 import Data.Array.Storable (newListArray, withStorableArray)
 import Foreign.Ptr (nullPtr)
 import Foreign.Storable (Storable, sizeOf)
