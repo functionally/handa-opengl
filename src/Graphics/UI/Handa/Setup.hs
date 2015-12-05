@@ -10,7 +10,8 @@ Functions for setting up GLUT applications.
 -}
 
 
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE RecordWildCards    #-}
 
 
 module Graphics.UI.Handa.Setup (
@@ -25,7 +26,9 @@ module Graphics.UI.Handa.Setup (
 
 
 import Control.Monad (when)
+import Data.Data (Data)
 import Data.List ((\\))
+import Data.Typeable (Typeable)
 import Graphics.Rendering.DLP (DlpEncoding)
 import Graphics.Rendering.Handa.Viewer (ViewerParameters(eyeSeparation), desktopViewer, laptopViewer, phoneViewer, projectorViewer, reshape)
 import Graphics.Rendering.OpenGL (BlendingFactor(..), Capability(Enabled), ComparisonFunction(Less), Vector3(..), ($=), blend, blendFunc)
@@ -43,7 +46,7 @@ data Setup =
   , viewer     :: Viewer  -- ^ The viewer information.
   , fullscreen :: Bool    -- ^ Whether to display full screen.
   }
-  deriving (Eq, Read, Show)
+  deriving (Data, Eq, Read, Show, Typeable)
 
 
 -- | The type of stereo.  
@@ -52,7 +55,7 @@ data Stereo =
   | QuadBuffer -- ^ Quad buffer stereo.
   | Cardboard  -- ^ Google Cardboard stereo.
   | Mono       -- ^ No stereo.
-  deriving (Bounded, Enum, Eq, Ord, Read, Show)
+  deriving (Bounded, Data, Enum, Eq, Ord, Read, Show, Typeable)
 
 
 -- | The viewer information.
@@ -61,7 +64,7 @@ data Viewer =
   | Laptop    -- ^ A typical laptop.
   | Desktop   -- ^ A typical desktop display.
   | Projector -- ^ A typical projector.
-  deriving (Bounded, Enum, Eq, Ord, Read, Show)
+  deriving (Bounded, Data, Enum, Eq, Ord, Read, Show, Typeable)
 
 
 -- | Set up a window with basic callbacks.  This creates a double-buffered window with a depth buffer, a transparency blending function, a generic reshaping callback, and a redisplaying idle function.  See 'handleArguments' for information on how command-line arguments are interpretted.
