@@ -50,7 +50,7 @@ data Setup =
   deriving (Data, Eq, Read, Show, Typeable)
 
 instance Default Setup where
-  def = Setup def False def True
+  def = Setup def False def False
 
 
 -- | The type of stereo.  
