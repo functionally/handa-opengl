@@ -26,6 +26,7 @@ module Graphics.UI.Handa.Setup (
 
 
 import Control.Monad (when)
+import Data.Binary (Binary(..))
 import Data.Data (Data)
 import Data.Default (Default(def))
 import Data.List ((\\))
@@ -52,6 +53,10 @@ data Setup =
 instance Default Setup where
   def = Setup def False def False
 
+instance Binary Setup where
+  put Setup{..} = put (stereo, switchEyes, viewer, fullscreen)
+  get = (\(stereo, switchEyes, viewer, fullscreen) -> Setup{..}) <$> get
+
 
 -- | The type of stereo.  
 data Stereo =
@@ -64,6 +69,10 @@ data Stereo =
 instance Default Stereo where
   def = Mono
 
+instance Binary Stereo where
+  put = put . fromEnum
+  get = toEnum <$> get
+
 
 -- | The viewer information.
 data Viewer =
@@ -75,6 +84,10 @@ data Viewer =
 
 instance Default Viewer where
   def = Laptop
+
+instance Binary Viewer where
+  put = put . fromEnum
+  get = toEnum <$> get
 
 
 -- | Set up a window with basic callbacks.  This creates a double-buffered window with a depth buffer, a transparency blending function, a generic reshaping callback, and a redisplaying idle function.  See 'handleArguments' for information on how command-line arguments are interpretted.
