@@ -1,34 +1,61 @@
 {-# LANGUAGE ExplicitForAll      #-}
+{-# LANGUAGE RecordWildCards     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 
 module Graphics.Rendering.Handa.Projection (
-  projection
+  Screen(..)
+, aspectRatio
+, throwRatio
+, projection
 ) where
 
 
 import Data.AdditiveGroup (AdditiveGroup)
 import Data.AffineSpace ((.-.))
 import Data.Cross (cross3)
-import Data.VectorSpace ((<.>), normalized)
+import Data.VectorSpace ((<.>), magnitude, normalized)
 import Graphics.Rendering.OpenGL (GLmatrix, MatrixComponent, MatrixOrder(RowMajor), Vector3(..), Vertex3(..), frustum, multMatrix, newMatrix, translate)
-import Graphics.Rendering.OpenGL.GL.Tensor.Instances ()
+import Graphics.Rendering.OpenGL.GL.Tensor.Instances (origin)
 
 
-origin :: Num a => Vertex3 a
-origin = Vertex3 0 0 0
+data Screen a =
+  Screen
+  {
+    lowerLeft  :: Vertex3 a
+  , lowerRight :: Vertex3 a
+  , upperLeft  :: Vertex3 a
+  }
+    deriving (Eq, Read, Show)
+
+
+aspectRatio :: (AdditiveGroup a, Floating a, Fractional a) => Screen a -> a
+aspectRatio Screen{..} =
+  let
+    width  = magnitude $ lowerRight .-. lowerLeft
+    height = magnitude $ upperLeft  .-. lowerLeft
+  in
+    width / height
+
+
+throwRatio :: (AdditiveGroup a, Floating a, Num a, Real a) => Screen a -> Vertex3 a -> a
+throwRatio Screen{..} eye =
+  let
+    width  = magnitude $ lowerRight .-. lowerLeft
+    vn = normalized (lowerRight .-. lowerLeft) `cross3` normalized (upperLeft  .-. lowerLeft)
+    throw = - (lowerLeft  .-. eye) <.> vn
+  in
+    throw / width
 
 
 -- See <http://csc.lsu.edu/~kooima/pdfs/gen-perspective.pdf>.
 projection :: forall a . (AdditiveGroup a, Floating a, MatrixComponent a, Num a, Real a)
-           => Vertex3 a
-           -> Vertex3 a
-           -> Vertex3 a
+           => Screen a
            -> Vertex3 a
            -> a
            -> a
            -> IO ()
-projection lowerLeft lowerRight upperLeft eye near far =
+projection Screen{..} eye near far =
   do
     let
       -- Orthonomal basis for screen.
@@ -40,9 +67,9 @@ projection lowerLeft lowerRight upperLeft eye near far =
       vb = lowerRight .-. eye
       vc = upperLeft  .-. eye
       -- Distance from eye to screen.
-      distance = - va <.> vn
+      throw = - va <.> vn
       -- Extent on near clipping plane.
-      scaling = near / distance
+      scaling = near / throw
       left   = realToFrac $ (vr <.> va) * scaling
       right  = realToFrac $ (vr <.> vb) * scaling
       bottom = realToFrac $ (vu <.> va) * scaling

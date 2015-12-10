@@ -4,6 +4,7 @@
 
 
 module Graphics.Rendering.OpenGL.GL.Tensor.Instances (
+  origin
 ) where
 
 
@@ -12,6 +13,10 @@ import Data.AffineSpace (AffineSpace(..))
 import Data.Cross (HasCross3(..))
 import Data.VectorSpace (InnerSpace(..), VectorSpace(..))
 import Graphics.Rendering.OpenGL (Vector3(..), Vertex3(..))
+
+
+origin :: Num a => Vertex3 a
+origin = Vertex3 0 0 0
 
 
 instance Num a => AdditiveGroup (Vector3 a) where

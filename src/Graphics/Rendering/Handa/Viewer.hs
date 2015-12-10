@@ -33,8 +33,9 @@ module Graphics.Rendering.Handa.Viewer (
 import Data.Default (Default, def)
 import Graphics.Rendering.DLP (DlpEncoding, DlpEye(..))
 import Graphics.Rendering.DLP.Callbacks (DlpDisplay(..))
+import Graphics.Rendering.Handa.Projection (Screen(..), projection, throwRatio)
 import Graphics.Rendering.Handa.Util (degree)
-import Graphics.Rendering.OpenGL (GLdouble, MatrixMode(..), Position(..), Size(..), Vector3(..), Vertex3(..), ($=!), loadIdentity, lookAt, matrixMode, perspective, viewport)
+import Graphics.Rendering.OpenGL (GLdouble, MatrixMode(..), Position(..), Vector3(..), Vertex3(..), ($=!), loadIdentity, lookAt, matrixMode, viewport)
 import Graphics.UI.GLUT (DisplayCallback, ReshapeCallback)
 
 
@@ -42,8 +43,7 @@ import Graphics.UI.GLUT (DisplayCallback, ReshapeCallback)
 data ViewerParameters =
   ViewerParameters
   {
-    displayAspectRatio :: GLdouble         -- ^ The aspect ratio of the screen or display (i.e., the width divided by the height).
-  , displayThrowRatio  :: GLdouble         -- ^ The throw ratio of the screen or display (i.e., the width divided by the distance).
+    screen             :: Screen GLdouble  -- ^ The screen location.
   , distanceNearPlane  :: GLdouble         -- ^ The distance to the near plane of the frustum.
   , distanceFarPlane   :: GLdouble         -- ^ The distance to the far plane of the frustum.
   , eyePosition        :: Vertex3 GLdouble -- ^ The position of the eyes.
@@ -57,11 +57,16 @@ instance Default ViewerParameters where
   def =
     ViewerParameters
     {
-      displayAspectRatio = 1
-    , displayThrowRatio  = 1
+      screen =
+        Screen
+        {
+          lowerLeft  = Vertex3 (-0.5) (-0.5) 0
+        , lowerRight = Vertex3   0.5  (-0.5) 0
+        , upperLeft  = Vertex3 (-0.5)   0.5  0
+        }
     , distanceNearPlane  = 0.5
     , distanceFarPlane   = 4.5
-    , eyePosition        = Vertex3 0   0 2
+    , eyePosition        = Vertex3 0   0 1
     , eyeSeparation      = Vector3 0.2 0 0
     , eyeUpward          = Vector3 0   1 0
     , sceneCenter        = Vertex3 0   0 0
@@ -76,8 +81,14 @@ viewerGeometry :: GLdouble         -- ^ The width of the screen or display.
 viewerGeometry width height throw =
   def
   {
-    displayAspectRatio = width / height
-  , displayThrowRatio  = throw / width
+    screen =
+      Screen
+      {
+        lowerLeft  = Vertex3 (- width / 2) (- height / 2) 0
+      , lowerRight = Vertex3 (  width / 2) (- height / 2) 0
+      , upperLeft  = Vertex3 (- width / 2) (  height / 2) 0
+      }
+  , eyePosition = Vertex3 0 0 throw
   }
 
 
@@ -98,29 +109,24 @@ desktopViewer = viewerGeometry 20.75 11.625 32
 
 -- | Viewer parameters for a typical projector.
 projectorViewer :: ViewerParameters
-projectorViewer =
-  def
-  {
-    displayAspectRatio = 1.6 / 1.0
-  , displayThrowRatio  = 1.5 / 1.0
-  }
+projectorViewer = viewerGeometry 1.6 1.0 1.5
 
 
 -- | Compute the field of view for viewer parameters.
 fieldOfView :: ViewerParameters -- ^ The viewer parameters
             -> GLdouble         -- ^ The field of view, in degrees.
-fieldOfView ViewerParameters{..} = 2 * atan2 0.5 displayThrowRatio * degree
+fieldOfView ViewerParameters{..} = 2 * atan2 0.5 (throwRatio screen eyePosition) * degree
 
 
 -- | Construct a reshape callback from viewer parameters.  This simply sets the frustum based on the viewer parameters and the size of the viewport.
 reshape :: ViewerParameters -- ^ The viewer parameters.
         -> ReshapeCallback  -- ^ The reshape callback.
-reshape vp@ViewerParameters{..} wh@(Size w h) = 
+reshape ViewerParameters{..} wh = 
   do
     viewport $=! (Position 0 0, wh)
     matrixMode $=! Projection
     loadIdentity
-    perspective (fieldOfView vp) (fromIntegral w / fromIntegral h) distanceNearPlane distanceFarPlane
+    projection screen eyePosition distanceNearPlane distanceFarPlane
     matrixMode $=! Modelview 0
 
 
