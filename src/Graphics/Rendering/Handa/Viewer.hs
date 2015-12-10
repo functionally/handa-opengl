@@ -66,8 +66,8 @@ instance Default ViewerParameters where
         , lowerRight = Vertex3   0.5  (-0.5) 0
         , upperLeft  = Vertex3 (-0.5)   0.5  0
         }
-    , distanceNearPlane  = 0.5
-    , distanceFarPlane   = 4.5
+    , distanceNearPlane  = 0.1
+    , distanceFarPlane   = 100
     , eyePosition        = Vertex3 0   0 1
     , eyeSeparation      = Vector3 0.2 0 0
     , eyeUpward          = Vector3 0   1 0
@@ -86,11 +86,11 @@ viewerGeometry width height throw =
     screen =
       Screen
       {
-        lowerLeft  = Vertex3 (- width / 2) (- height / 2) 0
-      , lowerRight = Vertex3 (  width / 2) (- height / 2) 0
-      , upperLeft  = Vertex3 (- width / 2) (  height / 2) 0
+        lowerLeft  = Vertex3 (- 1 / 2) (- height / width / 2) 0
+      , lowerRight = Vertex3 (  1 / 2) (- height / width / 2) 0
+      , upperLeft  = Vertex3 (- 1 / 2) (  height / width / 2) 0
       }
-  , eyePosition = Vertex3 0 0 throw
+  , eyePosition = Vertex3 0 0 (throw / width)
   }
 
 
@@ -111,7 +111,7 @@ desktopViewer = viewerGeometry 20.75 11.625 32
 
 -- | Viewer parameters for a typical projector.
 projectorViewer :: ViewerParameters
-projectorViewer = viewerGeometry 1.6 1.0 1.5
+projectorViewer = viewerGeometry 1.6 1.0 (1.5 * 1.6)
 
 
 displayAspectRatio :: ViewerParameters
