@@ -17,6 +17,8 @@ module Graphics.Rendering.Handa.Viewer (
   -- * Viewer Geometry
   ViewerParameters(..)
 , viewerGeometry
+, displayAspectRatio
+, displayThrowRatio
 , fieldOfView
   -- * Typical Devices
 , phoneViewer
@@ -33,7 +35,7 @@ module Graphics.Rendering.Handa.Viewer (
 import Data.Default (Default, def)
 import Graphics.Rendering.DLP (DlpEncoding, DlpEye(..))
 import Graphics.Rendering.DLP.Callbacks (DlpDisplay(..))
-import Graphics.Rendering.Handa.Projection (Screen(..), projection, throwRatio)
+import Graphics.Rendering.Handa.Projection (Screen(..), aspectRatio, projection, throwRatio)
 import Graphics.Rendering.Handa.Util (degree)
 import Graphics.Rendering.OpenGL (GLdouble, MatrixMode(..), Position(..), Vector3(..), Vertex3(..), ($=!), loadIdentity, lookAt, matrixMode, viewport)
 import Graphics.UI.GLUT (DisplayCallback, ReshapeCallback)
@@ -110,6 +112,16 @@ desktopViewer = viewerGeometry 20.75 11.625 32
 -- | Viewer parameters for a typical projector.
 projectorViewer :: ViewerParameters
 projectorViewer = viewerGeometry 1.6 1.0 1.5
+
+
+displayAspectRatio :: ViewerParameters
+                   -> GLdouble
+displayAspectRatio ViewerParameters{..} = aspectRatio screen
+
+
+displayThrowRatio :: ViewerParameters
+                  -> GLdouble
+displayThrowRatio ViewerParameters{..} = throwRatio screen eyePosition
 
 
 -- | Compute the field of view for viewer parameters.
