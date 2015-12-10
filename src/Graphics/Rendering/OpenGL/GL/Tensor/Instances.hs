@@ -1,3 +1,15 @@
+{-|
+Module      :  Graphics.Rendering.OpenGL.GL.Tensor.Instances
+Copyright   :  (c) 2015 Brian W Bush
+License     :  MIT
+Maintainer  :  Brian W Bush <consult@brianwbush.info>
+Stability   :  Stable
+Portability :  Portable
+
+Instances for vector algebra.
+-}
+
+
 {-# LANGUAGE TypeFamilies         #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
@@ -15,6 +27,7 @@ import Data.VectorSpace (InnerSpace(..), VectorSpace(..))
 import Graphics.Rendering.OpenGL (Vector3(..), Vertex3(..))
 
 
+-- | The origin of the coordinate system.
 origin :: Num a => Vertex3 a
 origin = Vertex3 0 0 0
 

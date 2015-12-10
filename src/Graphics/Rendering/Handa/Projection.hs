@@ -1,12 +1,26 @@
+{-|
+Module      :  Graphics.Rendering.Handa.Projection
+Copyright   :  (c) 2015 Brian W Bush
+License     :  MIT
+Maintainer  :  Brian W Bush <consult@brianwbush.info>
+Stability   :  Stable
+Portability :  Portable
+
+Functions for off-axis projection.
+-}
+
+
 {-# LANGUAGE ExplicitForAll      #-}
 {-# LANGUAGE RecordWildCards     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 
 module Graphics.Rendering.Handa.Projection (
+-- * Screens.
   Screen(..)
 , aspectRatio
 , throwRatio
+-- * Projections.
 , projection
 ) where
 
@@ -19,17 +33,21 @@ import Graphics.Rendering.OpenGL (GLmatrix, MatrixComponent, MatrixOrder(RowMajo
 import Graphics.Rendering.OpenGL.GL.Tensor.Instances (origin)
 
 
+-- | Description of a physical screen geometry.
 data Screen a =
   Screen
   {
-    lowerLeft  :: Vertex3 a
-  , lowerRight :: Vertex3 a
-  , upperLeft  :: Vertex3 a
+    lowerLeft  :: Vertex3 a -- ^ The lower left corner.
+  , lowerRight :: Vertex3 a -- ^ The lower right corner.
+  , upperLeft  :: Vertex3 a -- ^ The upper left corner.
   }
     deriving (Eq, Read, Show)
 
 
-aspectRatio :: (AdditiveGroup a, Floating a, Fractional a) => Screen a -> a
+-- | The aspect ratio.
+aspectRatio :: (AdditiveGroup a, Floating a, Fractional a)
+            => Screen a -- ^ The screen geometry.
+            -> a        -- ^ The aspect ratio, namely the screen width divided by its height.
 aspectRatio Screen{..} =
   let
     width  = magnitude $ lowerRight .-. lowerLeft
@@ -38,7 +56,11 @@ aspectRatio Screen{..} =
     width / height
 
 
-throwRatio :: (AdditiveGroup a, Floating a, Num a, Real a) => Screen a -> Vertex3 a -> a
+-- | The throw ratio.
+throwRatio :: (AdditiveGroup a, Floating a, Num a, Real a)
+           => Screen a  -- ^ The screen geometry.
+           -> Vertex3 a -- ^ The eye position.
+           -> a         -- ^ The throw ratio, name the distance to the screen divided by its width.
 throwRatio Screen{..} eye =
   let
     width  = magnitude $ lowerRight .-. lowerLeft
@@ -48,13 +70,13 @@ throwRatio Screen{..} eye =
     throw / width
 
 
--- See <http://csc.lsu.edu/~kooima/pdfs/gen-perspective.pdf>.
+-- | Make an off-axis projection for a screen.  This projection is based on the equations in \<<http://csc.lsu.edu/~kooima/pdfs/gen-perspective.pdf>\> .
 projection :: forall a . (AdditiveGroup a, Floating a, MatrixComponent a, Num a, Real a)
-           => Screen a
-           -> Vertex3 a
-           -> a
-           -> a
-           -> IO ()
+           => Screen a  -- ^ The screen geometry.
+           -> Vertex3 a -- ^ The eye position.
+           -> a         -- ^ The distance to the near culling plane.
+           -> a         -- ^ The distance to the far culling plane.
+           -> IO ()     -- ^ An action for performing the off-axis projection.
 projection Screen{..} eye near far =
   do
     let

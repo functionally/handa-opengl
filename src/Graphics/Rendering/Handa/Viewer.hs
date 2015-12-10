@@ -114,13 +114,15 @@ projectorViewer :: ViewerParameters
 projectorViewer = viewerGeometry 1.6 1.0 (1.5 * 1.6)
 
 
-displayAspectRatio :: ViewerParameters
-                   -> GLdouble
+-- | The aspect ratio of the viewer.
+displayAspectRatio :: ViewerParameters -- ^ The viewer parameters.
+                   -> GLdouble         -- ^ The aspect ratio, namely the screen width divided by its height.
 displayAspectRatio ViewerParameters{..} = aspectRatio screen
 
 
-displayThrowRatio :: ViewerParameters
-                  -> GLdouble
+-- | THe throw ratio of the viewer.
+displayThrowRatio :: ViewerParameters -- ^ The viewer parameters.
+                  -> GLdouble         -- ^ The throw ratio, namely the distance to the screen divided by its height.
 displayThrowRatio ViewerParameters{..} = throwRatio screen eyePosition
 
 
