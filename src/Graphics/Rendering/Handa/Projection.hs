@@ -50,6 +50,15 @@ data Screen a =
   }
     deriving (Binary, Data, Eq, FromJSON, Generic, Read, Show)
 
+instance Functor Screen where
+  fmap f Screen{..} =
+    Screen
+    {
+      lowerLeft  = fmap f lowerLeft
+    , lowerRight = fmap f lowerRight
+    , upperLeft  = fmap f upperLeft
+    }
+
 
 -- | The aspect ratio.
 aspectRatio :: (AdditiveGroup a, RealFloat a)

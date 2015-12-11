@@ -65,6 +65,19 @@ data ViewerParameters a =
   }
     deriving (Binary, Data, Eq, FromJSON, Generic, Read, Show)
 
+instance Functor ViewerParameters where
+  fmap f ViewerParameters{..} =
+    ViewerParameters
+    {
+      screen        = fmap f screen
+    , nearPlane     =      f nearPlane
+    , farPlane      =      f farPlane
+    , eyePosition   = fmap f eyePosition
+    , eyeSeparation = fmap f eyeSeparation
+    , eyeUpward     = fmap f eyeUpward
+    , sceneCenter   = fmap f sceneCenter
+    }
+
 instance (Fractional a, Storable a) => Default (ViewerParameters a) where
   def =
     ViewerParameters

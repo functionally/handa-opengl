@@ -55,6 +55,18 @@ data Setup a =
   }
   deriving (Binary, Data, Eq, FromJSON, Generic, Read, Show, Typeable)
 
+instance Functor Setup where
+  fmap f Setup{..} =
+    Setup
+    {
+      stereo     = stereo
+    , switchEyes = switchEyes
+    , viewer     = case viewer of
+                     Left x  -> Left $ fmap f x
+                     Right x -> Right x
+    , fullscreen = fullscreen
+    }
+
 instance Default (Setup a) where
   def = Setup def False (Right def) False
 
