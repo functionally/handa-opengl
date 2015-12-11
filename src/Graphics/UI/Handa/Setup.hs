@@ -10,9 +10,10 @@ Functions for setting up GLUT applications.
 -}
 
 
+{-# LANGUAGE DeriveAnyClass     #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveGeneric      #-}
 {-# LANGUAGE RecordWildCards    #-}
-
 
 module Graphics.UI.Handa.Setup (
   -- * Functions
@@ -26,36 +27,36 @@ module Graphics.UI.Handa.Setup (
 
 
 import Control.Monad (when)
+import Data.AdditiveGroup (AdditiveGroup)
+import Data.Aeson (FromJSON)
 import Data.Binary (Binary(..))
 import Data.Data (Data)
 import Data.Default (Default(def))
 import Data.List ((\\))
 import Data.Typeable (Typeable)
+import Foreign.Storable (Storable)
+import GHC.Generics (Generic)
 import Graphics.Rendering.DLP (DlpEncoding)
 import Graphics.Rendering.Handa.Viewer (ViewerParameters(eyeSeparation), desktopViewer, laptopViewer, phoneViewer, projectorViewer, reshape)
-import Graphics.Rendering.OpenGL (BlendingFactor(..), Capability(Enabled), ComparisonFunction(Less), Vector3(..), ($=), blend, blendFunc)
+import Graphics.Rendering.OpenGL (BlendingFactor(..), Capability(Enabled), ComparisonFunction(Less), MatrixComponent, Vector3(..), ($=), blend, blendFunc)
 import Graphics.UI.GLUT (DisplayMode(..), IdleCallback, createWindow, depthFunc, fullScreen, idleCallback, initialDisplayMode, initialize, postRedisplay, reshapeCallback)
 
 import qualified Graphics.Rendering.DLP as D (DlpEncoding(..))
 
 
 -- | The configuration for setting up the display.
-data Setup =
+data Setup a =
   Setup
   {
-    stereo     :: Stereo  -- ^ The type of stereo.
-  , switchEyes :: Bool    -- ^ Whether to switch the left and right eyes.
-  , viewer     :: Viewer  -- ^ The viewer information.
-  , fullscreen :: Bool    -- ^ Whether to display full screen.
+    stereo     :: Stereo                             -- ^ The type of stereo.
+  , switchEyes :: Bool                               -- ^ Whether to switch the left and right eyes.
+  , viewer     :: Either (ViewerParameters a) Viewer -- ^ The viewer information.
+  , fullscreen :: Bool                               -- ^ Whether to display full screen.
   }
-  deriving (Data, Eq, Read, Show, Typeable)
+  deriving (Binary, Data, Eq, FromJSON, Generic, Read, Show, Typeable)
 
-instance Default Setup where
-  def = Setup def False def False
-
-instance Binary Setup where
-  put Setup{..} = put (stereo, switchEyes, viewer, fullscreen)
-  get = (\(stereo, switchEyes, viewer, fullscreen) -> Setup{..}) <$> get
+instance Default (Setup a) where
+  def = Setup def False (Right def) False
 
 
 -- | The type of stereo.  
@@ -64,14 +65,10 @@ data Stereo =
   | QuadBuffer -- ^ Quad buffer stereo.
   | Cardboard  -- ^ Google Cardboard stereo.
   | Mono       -- ^ No stereo.
-  deriving (Bounded, Data, Enum, Eq, Ord, Read, Show, Typeable)
+  deriving (Binary, Bounded, Data, Enum, Eq, FromJSON, Generic, Ord, Read, Show, Typeable)
 
 instance Default Stereo where
   def = Mono
-
-instance Binary Stereo where
-  put = put . fromEnum
-  get = toEnum <$> get
 
 
 -- | The viewer information.
@@ -80,22 +77,19 @@ data Viewer =
   | Laptop    -- ^ A typical laptop.
   | Desktop   -- ^ A typical desktop display.
   | Projector -- ^ A typical projector.
-  deriving (Bounded, Data, Enum, Eq, Ord, Read, Show, Typeable)
+  deriving (Binary, Bounded, Data, Enum, Eq, FromJSON, Generic, Ord, Read, Show, Typeable)
 
 instance Default Viewer where
   def = Laptop
 
-instance Binary Viewer where
-  put = put . fromEnum
-  get = toEnum <$> get
-
 
 -- | Set up a window with basic callbacks.  This creates a double-buffered window with a depth buffer, a transparency blending function, a generic reshaping callback, and a redisplaying idle function.  See 'handleArguments' for information on how command-line arguments are interpretted.
-setup :: String                                       -- ^ The window title.
-      -> String                                       -- ^ The program name.
-      -> [String]                                     -- ^ The X11 arguments.
-      -> Setup                                        -- ^ The setup configuration.
-      -> IO (DlpEncoding, ViewerParameters, [String]) -- ^ An action returing the DLP encoding requested, the viewer parameters, and the uninterpretted arguments.
+setup :: (AdditiveGroup a, MatrixComponent a, RealFloat a, Storable a)
+      => String                                         -- ^ The window title.
+      -> String                                         -- ^ The program name.
+      -> [String]                                       -- ^ The X11 arguments.
+      -> Setup a                                        -- ^ The setup configuration.
+      -> IO (DlpEncoding, ViewerParameters a, [String]) -- ^ An action returing the DLP encoding requested, the viewer parameters, and the uninterpretted arguments.
 setup title program arguments Setup{..} =
   do
     arguments' <- initialize program arguments
@@ -114,10 +108,11 @@ setup title program arguments Setup{..} =
         Cardboard  -> D.SideBySide
         Mono       -> D.LeftOnly
       viewerParameters = case viewer of
-        Phone     -> phoneViewer
-        Laptop    -> laptopViewer
-        Desktop   -> desktopViewer
-        Projector -> projectorViewer
+        Right Phone     -> phoneViewer
+        Right Laptop    -> laptopViewer
+        Right Desktop   -> desktopViewer
+        Right Projector -> projectorViewer
+        Left _          -> undefined
       viewerParameters' =
         if switchEyes
         then viewerParameters {eyeSeparation = (\(Vector3 x y z) -> Vector3 (-x) (-y) (-z)) $ eyeSeparation viewerParameters}
@@ -146,8 +141,8 @@ setup title program arguments Setup{..} =
 -- *   \"--projection\" sets the frustum for a typical projector.
 --
 -- *   \"--fullscreen\" puts the application in full screen mode.
-handleArguments :: [String]          -- ^ The arguments.
-                -> (Setup, [String]) -- ^ The setup configuration and the remaining, uninterpretted, arguments.
+handleArguments :: [String]            -- ^ The arguments.
+                -> (Setup a, [String]) -- ^ The setup configuration and the remaining, uninterpretted, arguments.
 handleArguments arguments =
   let
     stereo
@@ -157,11 +152,11 @@ handleArguments arguments =
       | otherwise                       = Mono
     switchEyes = "--switchEyes" `elem` arguments
     viewer
-      | "--phone"      `elem` arguments  = Phone
-      | "--laptop"     `elem` arguments  = Laptop
-      | "--desktop"    `elem` arguments  = Desktop
-      | "--projector"  `elem` arguments  = Projector
-      | otherwise                        = Laptop
+      | "--phone"      `elem` arguments  = Right Phone
+      | "--laptop"     `elem` arguments  = Right Laptop
+      | "--desktop"    `elem` arguments  = Right Desktop
+      | "--projector"  `elem` arguments  = Right Projector
+      | otherwise                        = Right Laptop
     fullscreen = "--fullscreen" `elem` arguments
     keywords = ["--dlp", "--cardboard", "--switchEyes", "--phone", "--laptop", "--desktop", "--projector", "--fullscreen"]
   in

@@ -1,5 +1,5 @@
 name:                handa-opengl
-version:             0.1.9.4
+version:             0.1.10.0
 synopsis:            Utility functions for OpenGL and GLUT
 description:         This is a collection of miscellaneous utility functions for OpenGL and GLUT.
 
@@ -24,6 +24,7 @@ source-repository head
  
 library
   build-depends:    base               >= 4.8.1 && < 5
+               ,    aeson              >= 0.10
                ,    array              >= 0.5.1.0
                ,    binary             >= 0.7.5
                ,    data-default       >= 0.5.3

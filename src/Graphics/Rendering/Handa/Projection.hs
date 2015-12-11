@@ -10,6 +10,9 @@ Functions for off-axis projection.
 -}
 
 
+{-# LANGUAGE DeriveAnyClass      #-}
+{-# LANGUAGE DeriveDataTypeable  #-}
+{-# LANGUAGE DeriveGeneric       #-}
 {-# LANGUAGE ExplicitForAll      #-}
 {-# LANGUAGE RecordWildCards     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -26,9 +29,13 @@ module Graphics.Rendering.Handa.Projection (
 
 
 import Data.AdditiveGroup (AdditiveGroup)
+import Data.Aeson (FromJSON)
 import Data.AffineSpace ((.-.))
+import Data.Binary (Binary(..))
 import Data.Cross (cross3)
+import Data.Data (Data)
 import Data.VectorSpace ((<.>), magnitude, normalized)
+import GHC.Generics (Generic)
 import Graphics.Rendering.OpenGL (GLmatrix, MatrixComponent, MatrixOrder(RowMajor), Vector3(..), Vertex3(..), frustum, multMatrix, newMatrix, translate)
 import Graphics.Rendering.OpenGL.GL.Tensor.Instances (origin)
 
@@ -41,11 +48,11 @@ data Screen a =
   , lowerRight :: Vertex3 a -- ^ The lower right corner.
   , upperLeft  :: Vertex3 a -- ^ The upper left corner.
   }
-    deriving (Eq, Read, Show)
+    deriving (Binary, Data, Eq, FromJSON, Generic, Read, Show)
 
 
 -- | The aspect ratio.
-aspectRatio :: (AdditiveGroup a, Floating a, Fractional a)
+aspectRatio :: (AdditiveGroup a, RealFloat a)
             => Screen a -- ^ The screen geometry.
             -> a        -- ^ The aspect ratio, namely the screen width divided by its height.
 aspectRatio Screen{..} =
@@ -57,7 +64,7 @@ aspectRatio Screen{..} =
 
 
 -- | The throw ratio.
-throwRatio :: (AdditiveGroup a, Floating a, Num a, Real a)
+throwRatio :: (AdditiveGroup a, RealFloat a)
            => Screen a  -- ^ The screen geometry.
            -> Vertex3 a -- ^ The eye position.
            -> a         -- ^ The throw ratio, name the distance to the screen divided by its width.
@@ -71,7 +78,7 @@ throwRatio Screen{..} eye =
 
 
 -- | Make an off-axis projection for a screen.  This projection is based on the equations in \<<http://csc.lsu.edu/~kooima/pdfs/gen-perspective.pdf>\> .
-projection :: forall a . (AdditiveGroup a, Floating a, MatrixComponent a, Num a, Real a)
+projection :: forall a . (AdditiveGroup a, MatrixComponent a, RealFloat a)
            => Screen a  -- ^ The screen geometry.
            -> Vertex3 a -- ^ The eye position.
            -> a         -- ^ The distance to the near culling plane.
