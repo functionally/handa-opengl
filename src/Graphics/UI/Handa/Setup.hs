@@ -120,11 +120,11 @@ setup title program arguments Setup{..} =
         Cardboard  -> D.SideBySide
         Mono       -> D.LeftOnly
       viewerParameters = case viewer of
-        Right Phone     -> phoneViewer
-        Right Laptop    -> laptopViewer
-        Right Desktop   -> desktopViewer
-        Right Projector -> projectorViewer
-        Left _          -> undefined
+        Right Phone      -> phoneViewer
+        Right Laptop     -> laptopViewer
+        Right Desktop    -> desktopViewer
+        Right Projector  -> projectorViewer
+        Left  parameters -> parameters
       viewerParameters' =
         if switchEyes
         then viewerParameters {eyeSeparation = negate <$> eyeSeparation viewerParameters}

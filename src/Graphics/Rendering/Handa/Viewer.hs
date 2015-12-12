@@ -62,6 +62,7 @@ data ViewerParameters a =
   , eyeSeparation :: Vector3 a -- ^ The separation between the eyes.
   , eyeUpward     :: Vector3 a -- ^ The upward direction.
   , sceneCenter   :: Vertex3 a -- ^ The center of the scene.
+  , sceneScale    :: a         -- ^ The factor by which to scale the scene.
   }
     deriving (Binary, Data, Eq, FromJSON, Generic, Read, Show)
 
@@ -76,6 +77,7 @@ instance Functor ViewerParameters where
     , eyeSeparation = fmap f eyeSeparation
     , eyeUpward     = fmap f eyeUpward
     , sceneCenter   = fmap f sceneCenter
+    , sceneScale    =      f sceneScale
     }
 
 instance (Fractional a, Storable a) => Default (ViewerParameters a) where
@@ -95,6 +97,7 @@ instance (Fractional a, Storable a) => Default (ViewerParameters a) where
     , eyeSeparation = Vector3 0.2 0 0
     , eyeUpward     = Vector3 0   1 0
     , sceneCenter   = Vertex3 0   0 0
+    , sceneScale    = 1
     }
 
 

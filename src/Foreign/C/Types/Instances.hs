@@ -20,6 +20,7 @@ module Foreign.C.Types.Instances (
 ) where
 
 
+import Data.Aeson (FromJSON)
 import Data.Binary (Binary(..))
 import Foreign.C.Types (CDouble(..), CFloat(..))
 import GHC.Generics (Generic)
@@ -31,9 +32,13 @@ instance Binary CFloat where
   put (CFloat x) = put x
   get = CFloat <$> get
 
+instance FromJSON CFloat
+
 
 deriving instance Generic CDouble
 
 instance Binary CDouble where
   put (CDouble x) = put x
   get = CDouble <$> get
+
+instance FromJSON CDouble
