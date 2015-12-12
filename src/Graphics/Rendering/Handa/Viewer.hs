@@ -46,7 +46,7 @@ import Graphics.Rendering.DLP (DlpEncoding, DlpEye(..))
 import Graphics.Rendering.DLP.Callbacks (DlpDisplay(..))
 import Graphics.Rendering.Handa.Projection (Screen(..), aspectRatio, projection, throwRatio)
 import Graphics.Rendering.Handa.Util (degree)
-import Graphics.Rendering.OpenGL (MatrixComponent, MatrixMode(..), Position(..), Vector3(..), Vertex3(..), ($=!), loadIdentity, lookAt, matrixMode, viewport)
+import Graphics.Rendering.OpenGL (GLdouble, MatrixComponent, MatrixMode(..), Position(..), Vector3(..), Vertex3(..), ($=!), loadIdentity, lookAt, matrixMode, scale, viewport)
 import Graphics.Rendering.OpenGL.GL.Tensor.Instances ()
 import Graphics.UI.GLUT (DisplayCallback, ReshapeCallback)
 
@@ -62,7 +62,7 @@ data ViewerParameters a =
   , eyeSeparation :: Vector3 a -- ^ The separation between the eyes.
   , eyeUpward     :: Vector3 a -- ^ The upward direction.
   , sceneCenter   :: Vertex3 a -- ^ The center of the scene.
-  , sceneScale    :: a         -- ^ The factor by which to scale the scene.
+  , sceneScale    :: Vector3 a -- ^ The factor by which to scale the scene.
   }
     deriving (Binary, Data, Eq, FromJSON, Generic, Read, Show)
 
@@ -77,7 +77,7 @@ instance Functor ViewerParameters where
     , eyeSeparation = fmap f eyeSeparation
     , eyeUpward     = fmap f eyeUpward
     , sceneCenter   = fmap f sceneCenter
-    , sceneScale    =      f sceneScale
+    , sceneScale    = fmap f sceneScale
     }
 
 instance (Fractional a, Storable a) => Default (ViewerParameters a) where
@@ -97,7 +97,7 @@ instance (Fractional a, Storable a) => Default (ViewerParameters a) where
     , eyeSeparation = Vector3 0.2 0 0
     , eyeUpward     = Vector3 0   1 0
     , sceneCenter   = Vertex3 0   0 0
-    , sceneScale    = 1
+    , sceneScale    = Vector3 1   1 1
     }
 
 
@@ -118,6 +118,7 @@ viewerGeometry width height throw =
       , upperLeft  = Vertex3 (- 1 / 2) (  height / width / 2) 0
       }
   , eyePosition = Vertex3 0 0 (throw / width)
+  , sceneScale = Vector3 1 (height / width) 1
   }
 
 
@@ -182,7 +183,6 @@ loadViewer :: (RealFloat a, Storable a)
            -> IO ()              -- ^ An action for looking at the scene using the specified eye and viewer parameters.
 loadViewer ViewerParameters{..} eye =
   do
-    loadIdentity
     let
       offset =
         case eye of
@@ -190,6 +190,9 @@ loadViewer ViewerParameters{..} eye =
           RightDlp ->  0.5
       Vertex3  xEye  yEye  zEye = eyePosition
       Vector3 dxEye dyEye dzEye = eyeSeparation
+      Vector3 sx    sy    sz    = realToFrac <$> sceneScale :: Vector3 GLdouble
+    loadIdentity
+    scale sx sy sz
     lookAt
       (realToFrac <$> Vertex3 (xEye + offset * dxEye) (yEye + offset * dyEye) (zEye + offset * dzEye))
       (realToFrac <$> sceneCenter)
