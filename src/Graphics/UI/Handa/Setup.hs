@@ -38,7 +38,7 @@ import Foreign.Storable (Storable)
 import GHC.Generics (Generic)
 import Graphics.Rendering.DLP (DlpEncoding)
 import Graphics.Rendering.Handa.Viewer (ViewerParameters(eyeSeparation), desktopViewer, laptopViewer, phoneViewer, projectorViewer, reshape)
-import Graphics.Rendering.OpenGL (BlendingFactor(..), Capability(Enabled), ComparisonFunction(Less), MatrixComponent, Vector3(..), ($=), blend, blendFunc)
+import Graphics.Rendering.OpenGL (BlendingFactor(..), Capability(Enabled), ComparisonFunction(Less), MatrixComponent, ($=), blend, blendFunc)
 import Graphics.UI.GLUT (DisplayMode(..), IdleCallback, createWindow, depthFunc, fullScreen, idleCallback, initialDisplayMode, initialize, postRedisplay, reshapeCallback)
 
 import qualified Graphics.Rendering.DLP as D (DlpEncoding(..))
@@ -127,7 +127,7 @@ setup title program arguments Setup{..} =
         Left _          -> undefined
       viewerParameters' =
         if switchEyes
-        then viewerParameters {eyeSeparation = (\(Vector3 x y z) -> Vector3 (-x) (-y) (-z)) $ eyeSeparation viewerParameters}
+        then viewerParameters {eyeSeparation = negate <$> eyeSeparation viewerParameters}
         else viewerParameters
     reshapeCallback $= Just (reshape viewerParameters')
     idleCallback $= Just idle

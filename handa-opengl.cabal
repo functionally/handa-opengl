@@ -1,5 +1,5 @@
 name:                handa-opengl
-version:             0.1.10.1
+version:             0.1.10.2
 synopsis:            Utility functions for OpenGL and GLUT
 description:         This is a collection of miscellaneous utility functions for OpenGL and GLUT.
 
@@ -32,7 +32,8 @@ library
                ,    opengl-dlp-stereo  >= 0.1.5.1
                ,    OpenGL             >= 2.12.0.1
                ,    vector-space       >= 0.10.2
-  exposed-modules:  Graphics.Rendering.Handa.Face
+  exposed-modules:  Foreign.C.Types.Instances
+                    Graphics.Rendering.Handa.Face
                     Graphics.Rendering.Handa.Projection
                     Graphics.Rendering.Handa.Shape
                     Graphics.Rendering.Handa.Viewer

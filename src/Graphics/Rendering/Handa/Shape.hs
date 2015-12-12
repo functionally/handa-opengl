@@ -62,9 +62,9 @@ makeShape components dataType mode vertices priorAction =
 
 -- | Reconstruct a shape by replacing its vertices.
 remakeShape :: Storable a
-            => Shape      -- ^ The shape.
-            -> [a]        -- ^ The replacement vertices.
-            -> IO Shape   -- ^ An action for the updated shape.
+            => Shape    -- ^ The shape.
+            -> [a]      -- ^ The replacement vertices.
+            -> IO Shape -- ^ An action for the updated shape.
 remakeShape shape@Shape{..} vertices =
   let
     n = length vertices
