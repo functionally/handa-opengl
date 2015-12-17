@@ -32,21 +32,23 @@ module Graphics.Rendering.Handa.Viewer (
 , reshape
 , loadViewer
 , dlpViewerDisplay
+, dlpViewerDisplay'
 ) where
 
 
 import Data.AdditiveGroup (AdditiveGroup)
 import Data.Aeson (FromJSON)
-import Data.Binary (Binary(..))
+import Data.Binary (Binary)
 import Data.Data (Data)
 import Data.Default (Default, def)
+import Data.IORef (IORef)
 import Foreign.Storable (Storable)
 import GHC.Generics (Generic)
 import Graphics.Rendering.DLP (DlpEncoding, DlpEye(..))
 import Graphics.Rendering.DLP.Callbacks (DlpDisplay(..))
 import Graphics.Rendering.Handa.Projection (Screen(..), aspectRatio, projection, throwRatio)
 import Graphics.Rendering.Handa.Util (degree)
-import Graphics.Rendering.OpenGL (GLdouble, MatrixComponent, MatrixMode(..), Position(..), Vector3(..), Vertex3(..), ($=!), loadIdentity, lookAt, matrixMode, scale, viewport)
+import Graphics.Rendering.OpenGL (GLdouble, MatrixComponent, MatrixMode(..), Position(..), Vector3(..), Vertex3(..), ($=!), get, loadIdentity, lookAt, matrixMode, scale, viewport)
 import Graphics.Rendering.OpenGL.GL.Tensor.Instances ()
 import Graphics.UI.GLUT (DisplayCallback, ReshapeCallback)
 
@@ -209,5 +211,22 @@ dlpViewerDisplay encoding viewerParameters display =
   def 
     {
       dlpEncoding = encoding
-    , doDisplay = \eye -> loadViewer viewerParameters eye >> display
+    , doDisplay   = \eye -> loadViewer viewerParameters eye >> display
+    }
+
+
+-- | Construct a DLP display from a display callback.
+dlpViewerDisplay' :: (RealFloat a, Storable a)
+                  => DlpEncoding                -- ^ The DLP encoding.
+                  -> IORef (ViewerParameters a) -- ^ A reference to the viewer parameters.
+                  -> DisplayCallback            -- ^ The display callback.
+                  -> DlpDisplay                 -- ^ The DLP display data for using the specified encoding, viewer parameters, and display callback.
+dlpViewerDisplay' encoding viewerParameters display =
+  def 
+    {
+      dlpEncoding = encoding
+    , doDisplay   = \eye -> do
+                      viewerParameters' <- get viewerParameters
+                      loadViewer viewerParameters' eye
+                      display
     }
