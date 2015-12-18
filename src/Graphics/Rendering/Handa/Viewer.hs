@@ -37,9 +37,11 @@ module Graphics.Rendering.Handa.Viewer (
 
 
 import Data.AdditiveGroup (AdditiveGroup)
+import Data.AffineSpace ((.+^))
 import Data.Aeson (FromJSON)
 import Data.Binary (Binary)
 import Data.Data (Data)
+import Data.VectorSpace ((*^))
 import Data.Default (Default, def)
 import Data.IORef (IORef)
 import Foreign.Storable (Storable)
@@ -120,7 +122,7 @@ viewerGeometry width height throw =
       , upperLeft  = Vertex3 (- 1 / 2) (  height / width / 2) 0
       }
   , eyePosition = Vertex3 0 0 (throw / width)
-  , sceneScale = Vector3 1 (height / width) 1
+  , sceneScale = 0.5 *^ Vector3 1 (height / width) 1
   }
 
 
@@ -179,54 +181,65 @@ reshape ViewerParameters{..} wh =
 
 
 -- | Create an action look at the scene according to the viewer parameters.
-loadViewer :: (RealFloat a, Storable a)
-           => ViewerParameters a -- ^ The viewer parameters.
+loadViewer :: (AdditiveGroup a, MatrixComponent a, RealFloat a, Storable a)
+           => Bool               -- ^ Whether to use an on-axis projection.
+           -> ViewerParameters a -- ^ The viewer parameters.
            -> DlpEye             -- ^ The eye from which to view.
            -> IO ()              -- ^ An action for looking at the scene using the specified eye and viewer parameters.
-loadViewer ViewerParameters{..} eye =
-  do
-    let
-      offset =
-        case eye of
-          LeftDlp  -> -0.5
-          RightDlp ->  0.5
-      Vertex3  xEye  yEye  zEye = eyePosition
-      Vector3 dxEye dyEye dzEye = eyeSeparation
-      Vector3 sx    sy    sz    = realToFrac <$> sceneScale :: Vector3 GLdouble
-    loadIdentity
-    scale sx sy sz
-    lookAt
-      (realToFrac <$> Vertex3 (xEye + offset * dxEye) (yEye + offset * dyEye) (zEye + offset * dzEye))
-      (realToFrac <$> sceneCenter)
-      (realToFrac <$> eyeUpward)
+loadViewer onAxis ViewerParameters{..} eye =
+  let
+    offset =
+      case eye of
+        LeftDlp  -> -0.5
+        RightDlp ->  0.5
+    eyePosition' = eyePosition .+^ offset *^ eyeSeparation
+    Vector3 sx sy sz = realToFrac <$> sceneScale :: Vector3 GLdouble
+  in
+    if onAxis
+      then do
+        loadIdentity
+        scale sx sy sz
+        lookAt
+          (realToFrac <$> eyePosition')
+          (realToFrac <$> sceneCenter)
+          (realToFrac <$> eyeUpward)
+      else do
+        matrixMode $=! Projection
+        loadIdentity
+        projection screen eyePosition' nearPlane farPlane
+        matrixMode $=! Modelview 0
+        loadIdentity
+        scale sx sy sz
 
 
 -- | Construct a DLP display from a display callback.
-dlpViewerDisplay :: (RealFloat a, Storable a)
-                 => DlpEncoding        -- ^ The DLP encoding.
+dlpViewerDisplay :: (AdditiveGroup a, MatrixComponent a, RealFloat a, Storable a)
+                 => Bool               -- ^ Whether to use on-axis projection.
+                 -> DlpEncoding        -- ^ The DLP encoding.
                  -> ViewerParameters a -- ^ The viewer parameters.
                  -> DisplayCallback    -- ^ The display callback.
                  -> DlpDisplay         -- ^ The DLP display data for using the specified encoding, viewer parameters, and display callback.
-dlpViewerDisplay encoding viewerParameters display =
+dlpViewerDisplay onAxis encoding viewerParameters display =
   def 
     {
       dlpEncoding = encoding
-    , doDisplay   = \eye -> loadViewer viewerParameters eye >> display
+    , doDisplay   = \eye -> loadViewer onAxis viewerParameters eye >> display
     }
 
 
 -- | Construct a DLP display from a display callback.
-dlpViewerDisplay' :: (RealFloat a, Storable a)
-                  => DlpEncoding                -- ^ The DLP encoding.
+dlpViewerDisplay' :: (AdditiveGroup a, MatrixComponent a, RealFloat a, Storable a)
+                  => Bool                       -- ^ Whether to use on-axis projection.
+                  -> DlpEncoding                -- ^ The DLP encoding.
                   -> IORef (ViewerParameters a) -- ^ A reference to the viewer parameters.
                   -> DisplayCallback            -- ^ The display callback.
                   -> DlpDisplay                 -- ^ The DLP display data for using the specified encoding, viewer parameters, and display callback.
-dlpViewerDisplay' encoding viewerParameters display =
+dlpViewerDisplay' onAxis encoding viewerParameters display =
   def 
     {
       dlpEncoding = encoding
     , doDisplay   = \eye -> do
                       viewerParameters' <- get viewerParameters
-                      loadViewer viewerParameters' eye
+                      loadViewer onAxis viewerParameters' eye
                       display
     }
