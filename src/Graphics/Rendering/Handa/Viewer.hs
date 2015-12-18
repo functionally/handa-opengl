@@ -198,11 +198,11 @@ loadViewer onAxis ViewerParameters{..} eye =
     if onAxis
       then do
         loadIdentity
-        scale sx sy sz
         lookAt
           (realToFrac <$> eyePosition')
           (realToFrac <$> sceneCenter)
           (realToFrac <$> eyeUpward)
+        scale sx sy sz
       else do
         matrixMode $=! Projection
         loadIdentity

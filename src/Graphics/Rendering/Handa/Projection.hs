@@ -99,7 +99,7 @@ projection Screen{..} eye near far =
       -- Orthonomal basis for screen.
       vr = normalized $ lowerRight .-. lowerLeft
       vu = normalized $ upperLeft  .-. lowerLeft
-      vn = vr `cross3` vu
+      vn = normalized $ vr `cross3` vu
       -- Screen corners relative to eye.
       va = lowerLeft  .-. eye
       vb = lowerRight .-. eye
