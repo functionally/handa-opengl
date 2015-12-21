@@ -97,11 +97,11 @@ instance (Fractional a, Storable a) => Default (ViewerParameters a) where
         }
     , nearPlane     = 0.1
     , farPlane      = 100
-    , eyePosition   = Vertex3 0   0 1
-    , eyeSeparation = Vector3 0.2 0 0
-    , eyeUpward     = Vector3 0   1 0
-    , sceneCenter   = Vertex3 0   0 0
-    , sceneScale    = Vector3 1   1 1
+    , eyePosition   = Vertex3 0    0 1
+    , eyeSeparation = Vector3 0.02 0 0
+    , eyeUpward     = Vector3 0    1 0
+    , sceneCenter   = Vertex3 0    0 0
+    , sceneScale    = Vector3 1    1 1
     }
 
 
