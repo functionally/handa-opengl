@@ -48,7 +48,7 @@ import Foreign.Storable (Storable)
 import GHC.Generics (Generic)
 import Graphics.Rendering.DLP (DlpEncoding, DlpEye(..))
 import Graphics.Rendering.DLP.Callbacks (DlpDisplay(..))
-import Graphics.Rendering.Handa.Projection (Screen(..), aspectRatio, projection, throwRatio)
+import Graphics.Rendering.Handa.Projection (OffAxisProjection(VTKOffAxis), Screen(..), aspectRatio, projection, throwRatio)
 import Graphics.Rendering.Handa.Util (degree)
 import Graphics.Rendering.OpenGL (GLdouble, MatrixComponent, MatrixMode(..), Position(..), Vector3(..), Vertex3(..), ($=!), get, loadIdentity, lookAt, matrixMode, scale, viewport)
 import Graphics.Rendering.OpenGL.GL.Tensor.Instances ()
@@ -176,7 +176,7 @@ reshape ViewerParameters{..} wh =
     viewport $=! (Position 0 0, wh)
     matrixMode $=! Projection
     loadIdentity
-    projection screen eyePosition nearPlane farPlane
+    projection VTKOffAxis screen eyePosition nearPlane farPlane
     matrixMode $=! Modelview 0
 
 
@@ -206,7 +206,7 @@ loadViewer onAxis ViewerParameters{..} eye =
       else do
         matrixMode $=! Projection
         loadIdentity
-        projection screen eyePosition' nearPlane farPlane
+        projection VTKOffAxis screen eyePosition' nearPlane farPlane
         matrixMode $=! Modelview 0
         loadIdentity
         scale sx sy sz

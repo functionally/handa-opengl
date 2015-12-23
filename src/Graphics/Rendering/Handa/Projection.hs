@@ -14,6 +14,7 @@ Functions for off-axis projection.
 {-# LANGUAGE DeriveDataTypeable  #-}
 {-# LANGUAGE DeriveGeneric       #-}
 {-# LANGUAGE ExplicitForAll      #-}
+{-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE RecordWildCards     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
@@ -21,23 +22,26 @@ Functions for off-axis projection.
 module Graphics.Rendering.Handa.Projection (
 -- * Screens.
   Screen(..)
+, upperRight
 , aspectRatio
 , throwRatio
 -- * Projections.
+, OffAxisProjection(..)
 , projection
 ) where
 
 
 import Data.AdditiveGroup (AdditiveGroup)
 import Data.Aeson (FromJSON)
-import Data.AffineSpace ((.-.))
-import Data.Binary (Binary(..))
+import Data.AffineSpace ((.+^), (.-.))
+import Data.Binary (Binary)
 import Data.Cross (cross3)
 import Data.Data (Data)
 import Data.VectorSpace ((<.>), magnitude, normalized)
 import GHC.Generics (Generic)
 import Graphics.Rendering.OpenGL (GLmatrix, MatrixComponent, MatrixOrder(RowMajor), Vector3(..), Vertex3(..), frustum, multMatrix, newMatrix, translate)
 import Graphics.Rendering.OpenGL.GL.Tensor.Instances (origin)
+import Numeric.LinearAlgebra ((<>), (#>), cross, fromColumns, fromList, fromLists, inv, norm_2, scalar, toList, toLists)
 
 
 -- | Description of a physical screen geometry.
@@ -58,6 +62,13 @@ instance Functor Screen where
     , lowerRight = fmap f lowerRight
     , upperLeft  = fmap f upperLeft
     }
+
+
+-- | The upper right corner.
+upperRight :: (Num a)
+           => Screen a
+           -> Vertex3 a
+upperRight Screen{..} = lowerRight .+^ (upperLeft .-. lowerLeft)
 
 
 -- | The aspect ratio.
@@ -86,14 +97,24 @@ throwRatio Screen{..} eye =
     throw / width
 
 
--- | Make an off-axis projection for a screen.  This projection is based on the equations in \<<http://csc.lsu.edu/~kooima/pdfs/gen-perspective.pdf>\> .
+-- | The equations to use for off-axis projection.
+data OffAxisProjection =
+    KooimaOffAxis -- ^ Based on Kooima 2009, \<<http://csc.lsu.edu/~kooima/pdfs/gen-perspective.pdf>\>, which assumes a rectangular screen .
+  | VTKOffAxis    -- ^ Based on VTK 6.3.0, \<<https://gitlab.kitware.com/vtk/vtk/blob/v6.3.0/Rendering/Core/vtkCamera.cxx#L414>\>, which does not assume a rectangular screen.
+    deriving (Eq, Read, Show)
+
+
+-- | Make an off-axis projection for a screen.
 projection :: forall a . (AdditiveGroup a, MatrixComponent a, RealFloat a)
-           => Screen a  -- ^ The screen geometry.
-           -> Vertex3 a -- ^ The eye position.
-           -> a         -- ^ The distance to the near culling plane.
-           -> a         -- ^ The distance to the far culling plane.
-           -> IO ()     -- ^ An action for performing the off-axis projection.
-projection Screen{..} eye near far =
+           => OffAxisProjection -- ^ The off-axis equations to use.
+           -> Screen a          -- ^ The screen geometry.
+           -> Vertex3 a         -- ^ The eye position.
+           -> a                 -- ^ The distance to the near culling plane.
+           -> a                 -- ^ The distance to the far culling plane.
+           -> IO ()             -- ^ An action for performing the off-axis projection.
+
+-- Based on Kooima 2009, \<<http://csc.lsu.edu/~kooima/pdfs/gen-perspective.pdf>\>, which assumes a rectangular screen .
+projection KooimaOffAxis Screen{..} eye near far =
   do
     let
       -- Orthonomal basis for screen.
@@ -120,3 +141,56 @@ projection Screen{..} eye near far =
     multMatrix =<< (newMatrix RowMajor $ concat m :: IO (GLmatrix a))
     -- Move apex of frustum.
     translate $ origin .-. eye
+
+-- Based on VTK 6.3.0, \<<https://gitlab.kitware.com/vtk/vtk/blob/v6.3.0/Rendering/Core/vtkCamera.cxx#L414>\>, which does not assume a rectangular screen.
+projection VTKOffAxis s@Screen{..} eye near far =
+  do
+    -- FIXME: Rewrite this using `Graphics.Rendering.OpenGL.CoordTrans` instead of `Numerics.LinearAlgebra`.
+    let
+      normalize v = v / scalar (norm_2 v)
+      fromVertex3 (Vertex3 x y z) = fromList [x, y, z]
+      toHomogeneous w = fromList . (++ [w]) . toList
+      toPoint = toHomogeneous 1
+      toDirection = toHomogeneous 0
+      -- The corners and eye in R^3.
+      lowerLeft'  = fromVertex3 (realToFrac <$> lowerLeft   )
+      lowerRight' = fromVertex3 (realToFrac <$> lowerRight  )
+      upperRight' = fromVertex3 (realToFrac <$> upperRight s)
+      eye'        = fromVertex3 (realToFrac <$> eye         )
+      -- The basis for the screen, not necessarily orthonormal.
+      vr = normalize $ lowerRight' - lowerLeft'
+      vu = normalize $ upperRight' - lowerRight'
+      vn = normalize $ vr `cross` vu
+      -- The world to screen matrix.
+      w2s =
+        inv
+          $ fromColumns
+          [
+            toDirection vr
+          , toDirection vu
+          , toDirection vn
+          , toPoint lowerLeft'
+          ]
+      -- Eye position and screen edges.
+      [ex, ey, ez, _] = toList $ w2s #> toPoint eye'
+      [hx, hy, _ , _] = toList $ w2s #> toPoint upperRight'
+      [lx, ly, _ , _] = toList $ w2s #> toPoint lowerLeft'
+      -- The screen size.
+      width  = hx - lx
+      height = hy - ly
+      -- The front, back, and depth.
+      f = ez - realToFrac far
+      b = ez - realToFrac near
+      depth = b - f
+      -- The frustum-like projection.
+      p =
+        fromLists
+          [
+            [2 * ez / width,               0, (hx + lx - 2 * ex) / width ,   - ez * (hx + lx) / width           ]
+          , [             0, 2 * ez / height, (hy + ly - 2 * ey) / height,   - ez * (hy + ly) / height          ]
+          , [             0,               0, (b  + f  - 2 * ez) / depth , b - ez - b * (b + f - 2 * ez) / depth]
+          , [             0,               0,                          -1,     ez                               ]
+          ]
+      -- The overall projection.
+      p' = p <> w2s
+    multMatrix =<< (newMatrix RowMajor $ map realToFrac $ concat $ toLists p' :: IO (GLmatrix a))

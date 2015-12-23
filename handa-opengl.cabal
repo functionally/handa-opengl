@@ -1,5 +1,5 @@
 name:                handa-opengl
-version:             0.1.11.6
+version:             0.1.12.0
 synopsis:            Utility functions for OpenGL and GLUT
 description:         This is a collection of miscellaneous utility functions for OpenGL and GLUT.
 
@@ -29,6 +29,7 @@ library
                ,    binary             >= 0.7.5
                ,    data-default       >= 0.5.3
                ,    GLUT               >= 2.7.0.1
+               ,    hmatrix            >= 0.17.0.1
                ,    opengl-dlp-stereo  >= 0.1.5.1
                ,    OpenGL             >= 2.12.0.1
                ,    vector-space       >= 0.10.2
