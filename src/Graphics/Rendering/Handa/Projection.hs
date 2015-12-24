@@ -28,7 +28,7 @@ module Graphics.Rendering.Handa.Projection (
 -- * Projections.
 , OffAxisProjection(..)
 , projection
-, projection''
+, fetchProjection
 ) where
 
 
@@ -41,11 +41,8 @@ import Data.Data (Data)
 import Data.List.Split (chunksOf)
 import Data.VectorSpace ((*^), (<.>), magnitude, normalized)
 import GHC.Generics (Generic)
-import Graphics.Rendering.OpenGL (GLmatrix, MatrixComponent, MatrixOrder(RowMajor), Vector3(..), Vertex3(..), frustum, get, getMatrixComponents, loadIdentity, matrix, multMatrix, newMatrix, translate)
+import Graphics.Rendering.OpenGL (GLmatrix, MatrixComponent, MatrixOrder(RowMajor), Vector3(..), Vertex3(..), frustum, get, getMatrixComponents, matrix, multMatrix, newMatrix, translate)
 import Graphics.Rendering.OpenGL.GL.Tensor.Instances (origin)
-import Numeric.LinearAlgebra ((<>), (#>), cross, dot, fromColumns, fromList, fromLists, inv, norm_2, scalar, toList, toLists)
-
-import qualified Numeric.LinearAlgebra as LA
 
 
 -- | Description of a physical screen geometry.
@@ -105,7 +102,6 @@ throwRatio Screen{..} eye =
 data OffAxisProjection =
     KooimaOffAxis -- ^ Based on Kooima 2009, \<<http://csc.lsu.edu/~kooima/pdfs/gen-perspective.pdf>\>, which assumes a rectangular screen.
   | VTKOffAxis    -- ^ Based on VTK 6.3.0, \<<https://gitlab.kitware.com/vtk/vtk/blob/v6.3.0/Rendering/Core/vtkCamera.cxx#L414>\>, which does not assume a rectangular screen.
-  | OffAxis       -- ^ Vector-based computations for VTK equations.
     deriving (Eq, Read, Show)
 
 
@@ -140,68 +136,15 @@ projection KooimaOffAxis Screen{..} eye near far =
       top    = realToFrac $ (vu <.> vc) * scaling
       -- Matrix transforming world to screen.
       m = [[x, y, z, 0] | Vector3 x y z <- [vr, vu, vn]] ++ [[0, 0, 0, 1]]
-    -- Perpendicator projection
+    -- Perpendicator projection.
     frustum left right bottom top (realToFrac near) (realToFrac far)
     -- Rotate to non-perpendicular.
     multMatrix =<< (newMatrix RowMajor $ concat m :: IO (GLmatrix a))
     -- Move apex of frustum.
     translate $ origin .-. eye
 
--- Based on VTK 6.3.0, \<<https://gitlab.kitware.com/vtk/vtk/blob/v6.3.0/Rendering/Core/vtkCamera.cxx#L414>\>, which does not assume a rectangular screen.
+-- Rewrite of VTK 6.3.0, \<<https://gitlab.kitware.com/vtk/vtk/blob/v6.3.0/Rendering/Core/vtkCamera.cxx#L414>\>, which does not assume a rectangular screen, in cleaner notation and using vector algebra.
 projection VTKOffAxis s@Screen{..} eye near far =
-  do
-    -- FIXME: Rewrite this using `Graphics.Rendering.OpenGL.CoordTrans` instead of `Numerics.LinearAlgebra`.
-    let
-      normalize v = v / scalar (norm_2 v)
-      fromVertex3 (Vertex3 x y z) = fromList [x, y, z]
-      toHomogeneous w = fromList . (++ [w]) . toList
-      toPoint = toHomogeneous 1
-      toDirection = toHomogeneous 0
-      -- The corners and eye in R^3.
-      lowerLeft'  = fromVertex3 (realToFrac <$> lowerLeft   )
-      lowerRight' = fromVertex3 (realToFrac <$> lowerRight  )
-      upperRight' = fromVertex3 (realToFrac <$> upperRight s)
-      eye'        = fromVertex3 (realToFrac <$> eye         )
-      -- The basis for the screen, not necessarily orthonormal.
-      vr = normalize $ lowerRight' - lowerLeft'
-      vu = normalize $ upperRight' - lowerRight'
-      vn = normalize $ vr `cross` vu
-      -- The world to screen matrix.
-      w2s =
-        inv
-          $ fromColumns
-          [
-            toDirection vr
-          , toDirection vu
-          , toDirection vn
-          , toPoint lowerLeft'
-          ]
-      -- Eye position and screen edges.
-      [ex, ey, ez, _] = toList $ w2s #> toPoint eye'
-      [hx, hy, _ , _] = toList $ w2s #> toPoint upperRight'
-      [lx, ly, _ , _] = toList $ w2s #> toPoint lowerLeft'
-      -- The screen size.
-      width  = hx - lx
-      height = hy - ly
-      -- The front, back, and depth.
-      f = ez - realToFrac far
-      b = ez - realToFrac near
-      depth = b - f
-      -- The frustum-like projection.
-      p =
-        fromLists
-          [
-            [2 * ez / width,               0, (hx + lx - 2 * ex) / width ,   - ez * (hx + lx) / width           ]
-          , [             0, 2 * ez / height, (hy + ly - 2 * ey) / height,   - ez * (hy + ly) / height          ]
-          , [             0,               0, (b  + f  - 2 * ez) / depth , b - ez - b * (b + f - 2 * ez) / depth]
-          , [             0,               0,                          -1,     ez                               ]
-          ]
-      -- The overall projection.
-      p' = p <> w2s
-    multMatrix =<< (newMatrix RowMajor $ map realToFrac $ concat $ toLists p' :: IO (GLmatrix a))
-
--- Rewrite of VTK 6.3.0 equations using vector algebra instead of linear algebra.
-projection OffAxis s@Screen{..} eye near far =
   do
     let
       -- Orthonomal basis for screen.
@@ -215,8 +158,6 @@ projection OffAxis s@Screen{..} eye near far =
       un = idet *^ vr `cross3` vu
       -- Screen corners relative to eye.
       va = lowerLeft    .-. eye
-      vb = lowerRight   .-. eye
-      vc = upperLeft    .-. eye
       vd = upperRight s .-. eye
       -- Distance from eye to screen.
       throw = - va <.> un
@@ -228,134 +169,18 @@ projection OffAxis s@Screen{..} eye near far =
       top    = realToFrac $ (uu <.> vd) * scaling
       -- Matrix transforming world to screen.
       m = [[x, y, z, 0] | Vector3 x y z <- [ur, uu, un]] ++ [[0, 0, 0, 1]]
-    -- Perpendicator projection
+    -- Perpendicator projection.
     frustum left right bottom top (realToFrac near) (realToFrac far)
     -- Rotate to non-perpendicular.
     multMatrix =<< (newMatrix RowMajor $ concat m :: IO (GLmatrix a))
     -- Move apex of frustum.
     translate $ origin .-. eye
-    print "NEW VTK"
-    print . map (map realToFrac) =<< (fetchMatrix :: IO [[a]])
-    loadIdentity
-    projection VTKOffAxis s eye near far
-    print "OLD VTK"
-    print . map (map realToFrac) =<< (fetchMatrix :: IO [[a]])
 
 
-fetchMatrix :: forall a . (MatrixComponent a, RealFloat a) => IO [[a]]
-fetchMatrix =
+-- | Retrieve the current projection matrix.
+fetchProjection :: forall a . (MatrixComponent a, RealFloat a)
+                => IO [[a]] -- ^ An action to retrieve the projection matrix, in row-major order.
+fetchProjection =
   do
     m <- get $ matrix Nothing :: IO (GLmatrix a)
     chunksOf 4 <$> getMatrixComponents RowMajor m
-
-
-projection'' :: forall a . (AdditiveGroup a, RealFloat a)
-             => Screen a          -- ^ The screen geometry.
-             -> Vertex3 a         -- ^ The eye position.
-             -> a                 -- ^ The distance to the near culling plane.
-             -> a                 -- ^ The distance to the far culling plane.
-             -> IO ()             -- ^ An action for performing the off-axis projection.
-projection'' s@Screen{..} eye near far =
-  do
-    -- FIXME: Rewrite this using `Graphics.Rendering.OpenGL.CoordTrans` instead of `Numerics.LinearAlgebra`.
-    let
-      normalize v = v / scalar (norm_2 v)
-      fromVertex3 (Vertex3 x y z) = fromList [x, y, z]
-      toHomogeneous w = fromList . (++ [w]) . toList
-      toPoint = toHomogeneous 1
-      toDirection = toHomogeneous 0
-      -- The corners and eye in R^3.
-      lowerLeft'  = fromVertex3 (realToFrac <$> lowerLeft   )
-      lowerRight' = fromVertex3 (realToFrac <$> lowerRight  )
-      upperRight' = fromVertex3 (realToFrac <$> upperRight s)
-      eye'        = fromVertex3 (realToFrac <$> eye         )
-      -- The basis for the screen, not necessarily orthonormal.
-      vr = normalize $ lowerRight' - lowerLeft'
-      vu = normalize $ upperRight' - lowerRight'
-      vn = normalize $ vr `cross` vu
-      det = scalar (vr `dot` (vu `cross` vn))
-      ur = vu `cross` vn / det :: LA.Vector LA.R
-      uu = vn `cross` vr / det :: LA.Vector LA.R
-      un = vr `cross` vu / det :: LA.Vector LA.R
-      -- The world to screen matrix.
-      w2s =
-        LA.fromRows
-          [
-            toDirection ur
-          , toDirection uu
-          , toDirection un
-          , LA.fromList [0, 0, 0, 1]
-          ]
-        <>
-        LA.fromColumns
-          [
-            LA.fromList [1, 0, 0, 0]
-          , LA.fromList [0, 1, 0, 0]
-          , LA.fromList [0, 0, 1, 0]
-          , toPoint (- lowerLeft')
-          ]
-      -- Eye position and screen edges.
-      [ex, ey, ez, _] = toList $ w2s #> toPoint eye'
-      [hx, hy, _ , _] = toList $ w2s #> toPoint upperRight'
-      [lx, ly, _ , _] = toList $ w2s #> toPoint lowerLeft'
-      -- The screen size.
-      width  = hx - lx
-      height = hy - ly
-      -- The front, back, and depth.
-      f = ez - realToFrac far
-      b = ez - realToFrac near
-      depth = b - f
-      -- The frustum-like projection.
-      near' = realToFrac near
-      far' = realToFrac far
-      scale' = near' / ez'
-      ez' = un `dot` (eye' - lowerLeft')
-      l' = ur `dot` (lowerLeft' - eye') * scale'
-      r' = ur `dot` (upperRight' - eye') * scale'
-      b' = uu `dot` (lowerLeft' - eye') * scale'
-      t' = uu `dot` (upperRight' - eye') * scale'
-      q =
-        fromLists
-          [
-            [2 * near' / (r' - l'),                     0, (r' + l') / (r' - l')            ,                                   0]
-          , [                    0, 2 * near' / (t' - b'), (t' + b') / (t' - b')            ,                                   0]
-          , [                    0,                     0, - (far' + near') / (far' - near'), - 2 * far' * near' / (far' - near')]
-          , [                    0,                     0,                                -1,                                   0]
-          ]
-        <>
---      LA.fromColumns
---        [
---          LA.fromList [1, 0, 0, 0]
---        , LA.fromList [0, 1, 0, 0]
---        , LA.fromList [0, 0, 1, 0]
---        , LA.fromList [- ur `dot` (eye' - lowerLeft'), - uu `dot` (eye' - lowerLeft'), - un `dot` (eye' - lowerLeft'), 1]
---        ]
---      <>
-        LA.fromRows
-          [
-            toDirection ur
-          , toDirection uu
-          , toDirection un
-          , LA.fromList [0, 0, 0, 1]
-          ]
-        <>
-        LA.fromColumns
-          [
-            LA.fromList [1, 0, 0, 0]
-          , LA.fromList [0, 1, 0, 0]
-          , LA.fromList [0, 0, 1, 0]
---        , toPoint (- lowerLeft')
-          , toPoint (- eye')
-          ]
-      p =
-        fromLists
-          [
-            [2 * ez / width,               0, (hx + lx - 2 * ex) / width ,   - ez * (hx + lx) / width           ]
-          , [             0, 2 * ez / height, (hy + ly - 2 * ey) / height,   - ez * (hy + ly) / height          ]
-          , [             0,               0, (b  + f  - 2 * ez) / depth , b - ez - b * (b + f - 2 * ez) / depth]
-          , [             0,               0,                          -1,     ez                               ]
-          ]
-      -- The overall projection.
-      p' = p <> w2s
-    print q
-    print p'
