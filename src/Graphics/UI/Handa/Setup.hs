@@ -37,7 +37,7 @@ import Data.Typeable (Typeable)
 import Foreign.Storable (Storable)
 import GHC.Generics (Generic)
 import Graphics.Rendering.DLP (DlpEncoding)
-import Graphics.Rendering.Handa.Viewer (ViewerParameters(eyeSeparation), desktopViewer, laptopViewer, phoneViewer, projectorViewer, reshape)
+import Graphics.Rendering.Handa.Viewer (ViewerParameters(eyeSeparation), desktopViewer, glassesViewer, laptopViewer, phoneViewer, projectorViewer, reshape)
 import Graphics.Rendering.OpenGL (BlendingFactor(..), Capability(Enabled), ComparisonFunction(Less), MatrixComponent, ($=), blend, blendFunc)
 import Graphics.UI.GLUT (DisplayMode(..), IdleCallback, createWindow, depthFunc, fullScreen, idleCallback, initialDisplayMode, initialize, postRedisplay, reshapeCallback)
 
@@ -89,6 +89,7 @@ data Viewer =
   | Laptop    -- ^ A typical laptop.
   | Desktop   -- ^ A typical desktop display.
   | Projector -- ^ A typical projector.
+  | Glasses   -- ^ Typical VR glasses.
   deriving (Binary, Bounded, Data, Enum, Eq, FromJSON, Generic, Ord, Read, Show, Typeable)
 
 instance Default Viewer where
@@ -124,6 +125,7 @@ setup title program arguments Setup{..} =
         Right Laptop     -> laptopViewer
         Right Desktop    -> desktopViewer
         Right Projector  -> projectorViewer
+        Right Glasses    -> glassesViewer
         Left  parameters -> parameters
       viewerParameters' =
         if switchEyes

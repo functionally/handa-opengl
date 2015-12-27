@@ -28,6 +28,7 @@ module Graphics.Rendering.Handa.Viewer (
 , laptopViewer
 , desktopViewer
 , projectorViewer
+, glassesViewer
   -- * Callbacks and Rendering
 , reshape
 , loadViewer
@@ -85,65 +86,73 @@ instance Functor ViewerParameters where
     }
 
 instance (Fractional a, Storable a) => Default (ViewerParameters a) where
-  def =
-    ViewerParameters
-    {
-      screen =
-        Screen
-        {
-          lowerLeft  = Vertex3 (-0.5) (-0.5) 0
-        , lowerRight = Vertex3   0.5  (-0.5) 0
-        , upperLeft  = Vertex3 (-0.5)   0.5  0
-        }
-    , nearPlane     = 0.1
-    , farPlane      = 100
-    , eyePosition   = Vertex3 0    0 1
-    , eyeSeparation = Vector3 0.02 0 0
-    , eyeUpward     = Vector3 0    1 0
-    , sceneCenter   = Vertex3 0    0 0
-    , sceneScale    = Vector3 1    1 1
-    }
+  def = laptopViewer
 
 
 -- | Construct viewer geometry from physical geometry.
 viewerGeometry :: (Fractional a, Storable a)
-               => a                  -- ^ The width of the screen or display.
-               -> a                  -- ^ The height of the screen or display.
-               -> a                  -- ^ The distance from the eyes to the screen or display.
+               => a                  -- ^ The aspect ratio (width over height) of the screen or display.
+               -> a                  -- ^ The throw ratio (distance over width) of the screen or display.
+               -> a                  -- ^ The distance from the eyes to the screen or display, in inches.
                -> ViewerParameters a -- ^ The corresponding viewer parameters.
-viewerGeometry width height throw =
-  def
-  {
+viewerGeometry aspect throw distance =
+    ViewerParameters
+    {
     screen =
       Screen
       {
-        lowerLeft  = Vertex3 (- 1 / 2) (- height / width / 2) 0
-      , lowerRight = Vertex3 (  1 / 2) (- height / width / 2) 0
-      , upperLeft  = Vertex3 (- 1 / 2) (  height / width / 2) 0
+        lowerLeft  = Vertex3 (- width / 2) (- height / 2) 0
+      , lowerRight = Vertex3 (  width / 2) (- height / 2) 0
+      , upperLeft  = Vertex3 (- width / 2) (  height / 2) 0
       }
-  , eyePosition = Vertex3 0 0 (throw / width)
-  , sceneScale = 0.5 *^ Vector3 1 (height / width) 1
-  }
+    , nearPlane     = 1           
+    , farPlane      = 5 * distance
+    , eyePosition   =         Vertex3 0                         0 distance
+    , eyeSeparation =         Vector3 (typical * (1 - comfort)) 0 0
+    , eyeUpward     =         Vector3 0                         1 0
+    , sceneCenter   =         Vertex3 0                         0 1
+    , sceneScale    = size *^ Vector3 aspect                    1 1
+    }
+      where
+        width = distance / throw
+        height = width / aspect
+        margin = 0.10 -- 10% margin
+        size = (1 - margin) / (1 / height + 1 / distance)
+        -- See <https://www.nvidia.com/content/GTC-2010/pdfs/2010_GTC2010.pdf>:
+        typical = 2.5  -- inches for typical maximum eye separation
+        comfort = 0.50 -- 25% reduction in eye separation for comforat at mid-range focus
 
 
 -- | Viewer parameters for a typical smartphone screen.
 phoneViewer :: (Fractional a, Storable a) => ViewerParameters a
-phoneViewer = viewerGeometry 5.27 2.80 12
+phoneViewer = viewerGeometry (1280 / 768) 0.5 18
 
 
 -- | Viewer parameters for a typical laptop screen.
 laptopViewer :: (Fractional a, Storable a) => ViewerParameters a
-laptopViewer = viewerGeometry 13.625 7.875 24
+laptopViewer = viewerGeometry (1920 / 1080) 1.8 24
 
 
 -- | Viewer parameters for a typical desktop monitor.
 desktopViewer :: (Fractional a, Storable a) => ViewerParameters a
-desktopViewer = viewerGeometry 20.75 11.625 32
+desktopViewer = viewerGeometry (1920 / 1080) 1.6 32
 
 
 -- | Viewer parameters for a typical projector.
 projectorViewer :: (Fractional a, Storable a) => ViewerParameters a
-projectorViewer = viewerGeometry 1.6 1.0 (1.5 * 1.6)
+projectorViewer = viewerGeometry 1.6 1.5 36
+
+
+-- | Viewer parameters for typical VR glasses.
+glassesViewer :: (Fractional a, Storable a) => ViewerParameters a
+glassesViewer = 
+  viewerGeometry (realToFrac $ pixelWidth / pixelHeight) (distance / width) $ 0.2 * distance
+    where
+      distance      = 4 * 39.37
+      pixelWidth    = 852
+      pixelHeight   = 480
+      pixelDiagonal = sqrt (pixelWidth * pixelWidth + pixelHeight * pixelHeight)
+      width         = 100 * realToFrac (pixelWidth / pixelDiagonal :: Double)
 
 
 -- | The aspect ratio of the viewer.
