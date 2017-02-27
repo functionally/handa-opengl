@@ -1,6 +1,6 @@
 {-|
-Module      :  Foreign.C.Types.Instances
-Copyright   :  (c) 2015 Brian W Bush
+Module      :  $Header$
+Copyright   :  (c) 2015-17 Brian W Bush
 License     :  MIT
 Maintainer  :  Brian W Bush <consult@brianwbush.info>
 Stability   :  Stable
@@ -20,7 +20,7 @@ module Foreign.C.Types.Instances (
 ) where
 
 
-import Data.Aeson (FromJSON)
+import Data.Aeson.Types (FromJSON, ToJSON)
 import Data.Binary (Binary(..))
 import Foreign.C.Types (CDouble(..), CFloat(..))
 import GHC.Generics (Generic)
@@ -34,6 +34,8 @@ instance Binary CFloat where
 
 instance FromJSON CFloat
 
+instance ToJSON CFloat
+
 
 deriving instance Generic CDouble
 
@@ -42,3 +44,5 @@ instance Binary CDouble where
   get = CDouble <$> get
 
 instance FromJSON CDouble
+
+instance ToJSON CDouble
