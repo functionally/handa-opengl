@@ -1,6 +1,6 @@
 {-|
-Module      :  Graphics.UI.Handa.Setup
-Copyright   :  (c) 2015 Brian W Bush
+Module      :  $Header$
+Copyright   :  (c) 2015-17 Brian W Bush
 License     :  MIT
 Maintainer  :  Brian W Bush <consult@brianwbush.info>
 Stability   :  Stable
@@ -28,7 +28,7 @@ module Graphics.UI.Handa.Setup (
 
 import Control.Monad (when)
 import Data.AdditiveGroup (AdditiveGroup)
-import Data.Aeson (FromJSON)
+import Data.Aeson.Types (FromJSON, ToJSON)
 import Data.Binary (Binary(..))
 import Data.Data (Data)
 import Data.Default (Default(def))
@@ -53,7 +53,7 @@ data Setup a =
   , viewer     :: Either (ViewerParameters a) Viewer -- ^ The viewer information.
   , fullscreen :: Bool                               -- ^ Whether to display full screen.
   }
-  deriving (Binary, Data, Eq, FromJSON, Generic, Read, Show, Typeable)
+  deriving (Binary, Data, Eq, FromJSON, Generic, Read, Show, ToJSON, Typeable)
 
 instance Functor Setup where
   fmap f Setup{..} =
@@ -77,7 +77,7 @@ data Stereo =
   | QuadBuffer -- ^ Quad buffer stereo.
   | Cardboard  -- ^ Google Cardboard stereo.
   | Mono       -- ^ No stereo.
-  deriving (Binary, Bounded, Data, Enum, Eq, FromJSON, Generic, Ord, Read, Show, Typeable)
+  deriving (Binary, Bounded, Data, Enum, Eq, FromJSON, Generic, Ord, Read, Show, ToJSON, Typeable)
 
 instance Default Stereo where
   def = Mono
@@ -90,7 +90,7 @@ data Viewer =
   | Desktop   -- ^ A typical desktop display.
   | Projector -- ^ A typical projector.
   | Glasses   -- ^ Typical VR glasses.
-  deriving (Binary, Bounded, Data, Enum, Eq, FromJSON, Generic, Ord, Read, Show, Typeable)
+  deriving (Binary, Bounded, Data, Enum, Eq, FromJSON, Generic, Ord, Read, Show, ToJSON, Typeable)
 
 instance Default Viewer where
   def = Laptop

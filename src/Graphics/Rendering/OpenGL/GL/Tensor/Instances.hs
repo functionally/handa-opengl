@@ -1,6 +1,6 @@
 {-|
-Module      :  Graphics.Rendering.OpenGL.GL.Tensor.Instances
-Copyright   :  (c) 2015 Brian W Bush
+Module      :  $Header$
+Copyright   :  (c) 2015-17 Brian W Bush
 License     :  MIT
 Maintainer  :  Brian W Bush <consult@brianwbush.info>
 Stability   :  Stable
@@ -24,7 +24,7 @@ module Graphics.Rendering.OpenGL.GL.Tensor.Instances (
 ) where
 
 
-import Data.Aeson (FromJSON)
+import Data.Aeson.Types (FromJSON, ToJSON)
 import Data.AdditiveGroup (AdditiveGroup(..))
 import Data.AffineSpace (AffineSpace(..))
 import Data.Binary (Binary(..))
@@ -48,6 +48,8 @@ deriving instance (Binary a, Generic a) => Binary (Vector3 a)
 
 deriving instance (FromJSON a, Generic a) => FromJSON (Vector3 a)
 
+deriving instance (ToJSON a, Generic a) => ToJSON (Vector3 a)
+
 
 deriving instance Data a => Data (Vertex3 a)
 
@@ -56,6 +58,8 @@ deriving instance Generic a => Generic (Vertex3 a)
 deriving instance (Binary a, Generic a) => Binary (Vertex3 a)
 
 deriving instance (FromJSON a, Generic a) => FromJSON (Vertex3 a)
+
+deriving instance (ToJSON a, Generic a) => ToJSON (Vertex3 a)
 
 
 instance Num a => AdditiveGroup (Vector3 a) where

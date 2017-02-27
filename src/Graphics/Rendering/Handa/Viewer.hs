@@ -39,7 +39,7 @@ module Graphics.Rendering.Handa.Viewer (
 
 import Data.AdditiveGroup (AdditiveGroup)
 import Data.AffineSpace ((.+^))
-import Data.Aeson (FromJSON)
+import Data.Aeson.Types (FromJSON, ToJSON)
 import Data.Binary (Binary)
 import Data.Data (Data)
 import Data.VectorSpace ((*^))
@@ -69,7 +69,7 @@ data ViewerParameters a =
   , sceneCenter   :: Vertex3 a -- ^ The center of the scene.
   , sceneScale    :: Vector3 a -- ^ The factor by which to scale the scene.
   }
-    deriving (Binary, Data, Eq, FromJSON, Generic, Read, Show)
+    deriving (Binary, Data, Eq, FromJSON, Generic, Read, Show, ToJSON)
 
 instance Functor ViewerParameters where
   fmap f ViewerParameters{..} =
