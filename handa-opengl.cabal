@@ -1,5 +1,5 @@
 name:                handa-opengl
-version:             0.1.13.3
+version:             0.1.13.4
 synopsis:            Utility functions for OpenGL and GLUT
 description:         This is a collection of miscellaneous utility functions for OpenGL and GLUT.
 
